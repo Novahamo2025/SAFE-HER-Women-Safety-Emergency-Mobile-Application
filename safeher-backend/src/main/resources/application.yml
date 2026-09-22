@@ -1,0 +1,52 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: safeher-backend
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/safeher}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      idle-timeout: 300000
+      connection-timeout: 20000
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+
+# SafeHer Security and Token Parameters
+app:
+  jwt:
+    secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+    access-token-expiration-ms: 86400000 # 24 hours
+    refresh-token-expiration-ms: 604800000 # 7 days
+
+  # SMS Gateway Integration (MSG91 / Indian DLT Provider)
+  sms:
+    provider: ${SMS_PROVIDER:MSG91}
+    auth-key: ${MSG91_AUTH_KEY:mock_auth_key}
+    sender-id: ${MSG91_SENDER_ID:SAFHER}
+    dlt-template-id: ${MSG91_DLT_TE_ID:1207161234567890123}
+    enabled: ${SMS_ENABLED:false}
+
+  # Firebase Admin SDK Configuration
+  firebase:
+    service-account-path: ${FIREBASE_CREDENTIALS_PATH:firebase-service-account.json}
+    enabled: ${FIREBASE_ENABLED:false}
+
+# Logging configuration
+logging:
+  level:
+    root: INFO
+    com.safeher: DEBUG
+    org.springframework.security: INFO

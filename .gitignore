@@ -1,0 +1,69 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Maven & Java
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+*.class
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# Node / React
+node_modules/
+dist/
+dist-ssr/
+*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Flutter / Dart
+.dart_tool/
+.packages
+build/
+.pub-cache/
+.pub/
+*.apk
+*.aab
+*.app
+*.ipa
+
+# Android build files
+safeher-mobile/android/.gradle/
+safeher-mobile/android/captures/
+safeher-mobile/android/gradlew
+safeher-mobile/android/gradlew.bat
+safeher-mobile/android/local.properties
+safeher-mobile/android/**/GeneratedPluginRegistrant.java
+
+# Environment & Secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+google-services.json
+firebase-service-account.json
+*.keystore
+*.jks
+
+# IDE & Editor settings
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.DS_Store
+Thumbs.db
