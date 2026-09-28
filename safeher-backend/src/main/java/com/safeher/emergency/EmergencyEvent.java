@@ -44,6 +44,10 @@ public class EmergencyEvent {
     @Column(name = "ended_at")
     private Instant endedAt;
 
+    @org.hibernate.annotations.UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
+
     @Column(name = "cancellation_reason")
     private String cancellationReason;
 }

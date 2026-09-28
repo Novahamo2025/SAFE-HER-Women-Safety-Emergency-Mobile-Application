@@ -16,7 +16,7 @@ class SmsService {
 
     final String mapsLink = 'https://maps.google.com/?q=$latitude,$longitude';
     final String message = Uri.encodeComponent(
-      'EMERGENCY ALERT: $userName needs immediate assistance! Live Location: $mapsLink - Sent via SafeHer'
+      'EMERGENCY ALERT: $userName needs immediate assistance! Live Location: $mapsLink - Sent via Svasheild'
     );
 
     // On Android, multiple recipients can be comma-separated or sent individually

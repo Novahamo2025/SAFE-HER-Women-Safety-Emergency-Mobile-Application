@@ -18,18 +18,27 @@ spring:
       connection-timeout: 20000
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: none
     show-sql: false
     properties:
       hibernate:
         format_sql: true
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 0
+    locations: classpath:db/migration
+    validate-on-migrate: true
 
 # SafeHer Security and Token Parameters
 app:
   jwt:
     secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
-    access-token-expiration-ms: 86400000 # 24 hours
-    refresh-token-expiration-ms: 604800000 # 7 days
+    access-token-expiration-ms: ${JWT_ACCESS_EXPIRY_MS:900000}
+    refresh-token-expiration-ms: ${JWT_REFRESH_EXPIRY_MS:604800000}
+    issuer: safeher-api
 
   # SMS Gateway Integration (MSG91 / Indian DLT Provider)
   sms:
@@ -44,9 +53,14 @@ app:
     service-account-path: ${FIREBASE_CREDENTIALS_PATH:firebase-service-account.json}
     enabled: ${FIREBASE_ENABLED:false}
 
+  # Contact limits
+  contacts:
+    max-per-user: ${MAX_CONTACTS_PER_USER:10}
+
 # Logging configuration
 logging:
   level:
     root: INFO
     com.safeher: DEBUG
     org.springframework.security: INFO
+    org.flywaydb: INFO

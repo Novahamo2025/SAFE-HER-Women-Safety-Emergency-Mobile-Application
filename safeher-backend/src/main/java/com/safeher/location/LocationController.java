@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/emergency/{id}/location")
+@RequestMapping("/api/emergency/{id}/location/submit")
 @RequiredArgsConstructor
 public class LocationController {
 

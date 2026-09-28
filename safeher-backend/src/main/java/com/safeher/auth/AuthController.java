@@ -2,6 +2,7 @@ package com.safeher.auth;
 
 import com.safeher.auth.dto.AuthResponse;
 import com.safeher.auth.dto.LoginRequest;
+import com.safeher.auth.dto.RefreshTokenRequest;
 import com.safeher.auth.dto.RegisterRequest;
 import com.safeher.common.ApiResponse;
 import jakarta.validation.Valid;
@@ -31,5 +32,17 @@ public class AuthController {
     public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody LoginRequest request) {
         AuthResponse response = authService.login(request);
         return ResponseEntity.ok(ApiResponse.ok(response, "Login successful"));
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<ApiResponse<AuthResponse>> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
+        AuthResponse response = authService.refreshToken(request.getRefreshToken());
+        return ResponseEntity.ok(ApiResponse.ok(response, "Token refreshed successfully"));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<Void>> logout(@Valid @RequestBody RefreshTokenRequest request) {
+        authService.logout(request.getRefreshToken());
+        return ResponseEntity.ok(ApiResponse.ok(null, "Logged out successfully"));
     }
 }

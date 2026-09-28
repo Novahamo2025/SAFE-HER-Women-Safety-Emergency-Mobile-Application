@@ -1,5 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../core/providers/contact_provider.dart';
+import '../../core/providers/emergency_provider.dart';
+import '../../core/providers/journey_provider.dart';
 import '../../core/theme/app_theme.dart';
+import '../../widgets/safe_button.dart';
+import '../../widgets/safe_card.dart';
+import '../../widgets/status_badge.dart';
+import '../emergency/sos_active_screen.dart';
 
 class SafeWalkScreen extends StatefulWidget {
   const SafeWalkScreen({super.key});
@@ -12,93 +20,445 @@ class _SafeWalkScreenState extends State<SafeWalkScreen> {
   final TextEditingController _destController = TextEditingController();
   int _estimatedMinutes = 20;
 
+  final List<String> _presets = ['Home', 'Hostel', 'Metro Station', 'Office / Work', 'Bus Terminal'];
+
+  @override
+  void dispose() {
+    _destController.dispose();
+    super.dispose();
+  }
+
+  void _startJourney() {
+    final dest = _destController.text.trim();
+    if (dest.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter your journey destination.'),
+          backgroundColor: AppTheme.warningAmber,
+        ),
+      );
+      return;
+    }
+
+    context.read<JourneyProvider>().startJourney(
+      destination: dest,
+      durationMinutes: _estimatedMinutes,
+    );
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Safe Walk active towards $dest for $_estimatedMinutes mins'),
+        backgroundColor: AppTheme.safeGreen,
+      ),
+    );
+  }
+
+  void _showAddCheckpointDialog() {
+    final checkpointCtrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Add Route Checkpoint'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Add a landmark or transit note to your monitored journey:',
+              style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: checkpointCtrl,
+              decoration: const InputDecoration(
+                hintText: 'e.g. Boarded Metro Blue Line, crossed bridge',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () {
+              if (checkpointCtrl.text.isNotEmpty) {
+                context.read<JourneyProvider>().addCheckpoint(checkpointCtrl.text.trim());
+              }
+              Navigator.pop(ctx);
+            },
+            child: const Text('Add Checkpoint'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showArrivalSafetyModal() {
+    showModalBottomSheet(
+      context: context,
+      isDismissible: false,
+      enableDrag: false,
+      backgroundColor: AppTheme.surfaceWhite,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppTheme.warningLightAmber,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.alarm_on, color: AppTheme.warningAmber, size: 36),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Have You Reached Safely?',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Your estimated arrival time has reached. Please confirm your safety to prevent escalating alerts to your trusted contacts.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13.5, color: AppTheme.textSecondary, height: 1.4),
+            ),
+            const SizedBox(height: 24),
+            SafeButton(
+              text: 'YES, I AM SAFE',
+              icon: Icons.check_circle_outline,
+              type: SafeButtonType.primary,
+              onPressed: () {
+                context.read<JourneyProvider>().completeJourneySafely();
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Safe Walk completed. Glad you reached safely!'),
+                    backgroundColor: AppTheme.safeGreen,
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+            SafeButton(
+              text: 'NEED HELP / TRIGGER SOS',
+              icon: Icons.emergency,
+              type: SafeButtonType.danger,
+              onPressed: () async {
+                Navigator.pop(ctx);
+                final contacts = context.read<ContactProvider>().contacts;
+                final emergency = context.read<EmergencyProvider>();
+                await emergency.triggerEmergency(contacts: contacts, userName: 'SafeHer User');
+                if (mounted) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => SosActiveScreen(latitude: emergency.latitude, longitude: emergency.longitude),
+                    ),
+                  );
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final journeyProvider = context.watch<JourneyProvider>();
+    final activeJourney = journeyProvider.activeJourney;
+
+    // Check if safety prompt is needed
+    if (journeyProvider.shouldPromptSafetyArrival) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        journeyProvider.dismissArrivalPrompt();
+        _showArrivalSafetyModal();
+      });
+    }
+
     return Scaffold(
+      backgroundColor: AppTheme.backgroundLight,
       appBar: AppBar(
         title: const Text('Safe Walk / Journey'),
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Where are you heading?',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _destController,
-              decoration: InputDecoration(
-                prefixIcon: const Icon(Icons.location_on, color: AppTheme.emergencyRed),
-                hintText: 'e.g. Home, Metro Station, College Hostel',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
-            const SizedBox(height: 24),
+            if (activeJourney != null && activeJourney.isActive) ...[
+              // Active Journey Card
+              SafeCard(
+                borderColor: AppTheme.brandPrimary.withOpacity(0.3),
+                backgroundColor: AppTheme.brandPrimaryLight.withOpacity(0.3),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const StatusBadge(
+                          label: 'JOURNEY MONITORED',
+                          type: StatusBadgeType.info,
+                          showDot: true,
+                        ),
+                        Text(
+                          'ETA ${activeJourney.expectedArrival.hour.toString().padLeft(2, '0')}:${activeJourney.expectedArrival.minute.toString().padLeft(2, '0')}',
+                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppTheme.textPrimary),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: AppTheme.brandPrimary,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.directions_walk, color: Colors.white, size: 24),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Heading Towards', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                              Text(
+                                activeJourney.destination,
+                                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
 
-            const Text(
-              'Expected Duration',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            Text(
-              '$_estimatedMinutes minutes to reach destination',
-              style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14),
-            ),
-            Slider(
-              value: _estimatedMinutes.toDouble(),
-              min: 5,
-              max: 120,
-              divisions: 23,
-              activeColor: AppTheme.emergencyRed,
-              label: '$_estimatedMinutes mins',
-              onChanged: (val) => setState(() => _estimatedMinutes = val.toInt()),
-            ),
-            const SizedBox(height: 12),
+                    // Progress Bar
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: LinearProgressIndicator(
+                        value: activeJourney.progressPercentage,
+                        minHeight: 8,
+                        backgroundColor: Colors.grey.shade200,
+                        valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.brandPrimary),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Started at ${activeJourney.startedAt.hour.toString().padLeft(2, '0')}:${activeJourney.startedAt.minute.toString().padLeft(2, '0')}',
+                          style: const TextStyle(fontSize: 12, color: AppTheme.textTertiary),
+                        ),
+                        Text(
+                          '${activeJourney.remainingDuration.inMinutes} mins remaining',
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.brandPrimary),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
 
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.blue.shade200),
+                    // Checkpoints list
+                    const Text('Journey Timeline & Checkpoints:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 6),
+                    ...activeJourney.checkpoints.map((cp) => Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 3),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.check_circle, size: 14, color: AppTheme.safeGreen),
+                          const SizedBox(width: 8),
+                          Expanded(child: Text(cp, style: const TextStyle(fontSize: 12.5, color: AppTheme.textSecondary))),
+                        ],
+                      ),
+                    )),
+                    const SizedBox(height: 16),
+
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            icon: const Icon(Icons.add_location_alt_outlined, size: 18),
+                            label: const Text('Add Checkpoint', style: TextStyle(fontSize: 13)),
+                            onPressed: _showAddCheckpointDialog,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.safeGreen),
+                            icon: const Icon(Icons.check, size: 18),
+                            label: const Text('I Have Arrived', style: TextStyle(fontSize: 13)),
+                            onPressed: () => journeyProvider.completeJourneySafely(),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Center(
+                      child: TextButton(
+                        onPressed: () => journeyProvider.cancelJourney(),
+                        child: const Text('Cancel Safe Walk', style: TextStyle(color: AppTheme.emergencyRed, fontSize: 13)),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              child: const Row(
-                children: [
-                  Icon(Icons.info_outline, color: Colors.blue),
-                  SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'If you do not confirm arrival within 5 minutes of your ETA, SafeHer automatically alerts your contacts.',
-                      style: TextStyle(fontSize: 12, color: Colors.black87),
+              const SizedBox(height: 24),
+            ] else ...[
+              // Start New Journey Card
+              SafeCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Start a Monitored Journey',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Svasheild tracks your expected arrival and alerts your trusted contacts if you do not confirm reaching safely within the grace period.',
+                      style: TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.4),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Destination Input
+                    const Text('Destination', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: _destController,
+                      decoration: const InputDecoration(
+                        hintText: 'e.g. Home, Sector 18 Metro, Hostel',
+                        prefixIcon: Icon(Icons.location_on_outlined, color: AppTheme.brandPrimary),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Quick presets
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      children: _presets.map((preset) {
+                        return ActionChip(
+                          label: Text(preset, style: const TextStyle(fontSize: 12)),
+                          backgroundColor: AppTheme.surfaceMuted,
+                          onPressed: () => setState(() => _destController.text = preset),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Expected Duration Slider
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Estimated Duration', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600)),
+                        Text(
+                          '$_estimatedMinutes minutes',
+                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.brandPrimary),
+                        ),
+                      ],
+                    ),
+                    Slider(
+                      value: _estimatedMinutes.toDouble(),
+                      min: 5,
+                      max: 120,
+                      divisions: 23,
+                      activeColor: AppTheme.brandPrimary,
+                      onChanged: (val) => setState(() => _estimatedMinutes = val.toInt()),
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Grace Period info
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppTheme.infoLightBlue,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: AppTheme.infoBlue.withOpacity(0.2)),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.timer_outlined, color: AppTheme.infoBlue, size: 18),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Grace period: You will receive a safety prompt at ETA + 5 minutes before contacts are notified.',
+                              style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    SafeButton(
+                      text: 'Start Safe Walk',
+                      icon: Icons.navigation_outlined,
+                      onPressed: _startJourney,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
+
+            // Past Journeys Summary
+            if (journeyProvider.pastJourneys.isNotEmpty) ...[
+              const Text(
+                'Recent Journeys',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+              ),
+              const SizedBox(height: 10),
+              ...journeyProvider.pastJourneys.take(3).map((pj) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: SafeCard(
+                    padding: const EdgeInsets.all(14),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: pj.isCompleted ? AppTheme.safeGreenLight : AppTheme.surfaceMuted,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            pj.isCompleted ? Icons.check : Icons.close,
+                            color: pj.isCompleted ? AppTheme.safeGreen : AppTheme.textSecondary,
+                            size: 18,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(pj.destination, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                              Text(
+                                '${pj.startedAt.day}/${pj.startedAt.month} • ${pj.durationMinutes} mins',
+                                style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                              ),
+                            ],
+                          ),
+                        ),
+                        StatusBadge(
+                          label: pj.status,
+                          type: pj.isCompleted ? StatusBadgeType.success : StatusBadgeType.neutral,
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
-            ),
-
-            const Spacer(),
-
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton.icon(
-                icon: const Icon(Icons.play_arrow),
-                label: const Text('START MONITORED JOURNEY'),
-                onPressed: () {
-                  if (_destController.text.isNotEmpty) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Safe Walk active towards ${_destController.text}'),
-                        backgroundColor: AppTheme.safeGreen,
-                      ),
-                    );
-                  }
-                },
-              ),
-            ),
+                );
+              }),
+            ],
           ],
         ),
       ),

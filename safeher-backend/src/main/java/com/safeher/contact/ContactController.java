@@ -2,6 +2,7 @@ package com.safeher.contact;
 
 import com.safeher.common.ApiResponse;
 import com.safeher.contact.dto.ContactRequest;
+import com.safeher.contact.dto.ContactResponse;
 import com.safeher.user.User;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -20,26 +21,34 @@ public class ContactController {
     private final ContactService contactService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<EmergencyContact>>> listContacts(@AuthenticationPrincipal User user) {
-        List<EmergencyContact> contacts = contactService.getUserContacts(user.getId());
+    public ResponseEntity<ApiResponse<List<ContactResponse>>> listContacts(@AuthenticationPrincipal User user) {
+        List<ContactResponse> contacts = contactService.getUserContacts(user.getId());
         return ResponseEntity.ok(ApiResponse.ok(contacts, "Contacts retrieved successfully"));
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<ContactResponse>> getContact(
+            @AuthenticationPrincipal User user,
+            @PathVariable Long id) {
+        ContactResponse contact = contactService.getContact(user.getId(), id);
+        return ResponseEntity.ok(ApiResponse.ok(contact, "Contact retrieved successfully"));
+    }
+
     @PostMapping
-    public ResponseEntity<ApiResponse<EmergencyContact>> createContact(
+    public ResponseEntity<ApiResponse<ContactResponse>> createContact(
             @AuthenticationPrincipal User user,
             @Valid @RequestBody ContactRequest request) {
-        EmergencyContact contact = contactService.addContact(user.getId(), request);
+        ContactResponse contact = contactService.addContact(user.getId(), request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.ok(contact, "Contact added successfully"));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<EmergencyContact>> updateContact(
+    public ResponseEntity<ApiResponse<ContactResponse>> updateContact(
             @AuthenticationPrincipal User user,
             @PathVariable Long id,
             @Valid @RequestBody ContactRequest request) {
-        EmergencyContact contact = contactService.updateContact(user.getId(), id, request);
+        ContactResponse contact = contactService.updateContact(user.getId(), id, request);
         return ResponseEntity.ok(ApiResponse.ok(contact, "Contact updated successfully"));
     }
 

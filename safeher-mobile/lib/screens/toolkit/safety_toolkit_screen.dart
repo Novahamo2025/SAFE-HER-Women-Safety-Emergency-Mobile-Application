@@ -1,71 +1,48 @@
 import 'package:flutter/material.dart';
-import 'package:torch_light/torch_light.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../core/providers/toolkit_provider.dart';
 import '../../core/theme/app_theme.dart';
+import '../../widgets/safe_card.dart';
+import '../../widgets/status_badge.dart';
+import '../emergency/sos_test_screen.dart';
+import 'incident_record_screen.dart';
 
-class SafetyToolkitScreen extends StatefulWidget {
+class SafetyToolkitScreen extends StatelessWidget {
   const SafetyToolkitScreen({super.key});
 
-  @override
-  State<SafetyToolkitScreen> createState() => _SafetyToolkitScreenState();
-}
-
-class _SafetyToolkitScreenState extends State<SafetyToolkitScreen> {
-  bool _isFlashlightOn = false;
-  bool _isSirenPlaying = false;
-
-  Future<void> _toggleFlashlight() async {
-    try {
-      if (_isFlashlightOn) {
-        await TorchLight.disableTorch();
-        setState(() => _isFlashlightOn = false);
-      } else {
-        await TorchLight.enableTorch();
-        setState(() => _isFlashlightOn = true);
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Flashlight control unavailable on this device')),
-      );
-    }
-  }
-
-  void _toggleSiren() {
-    setState(() {
-      _isSirenPlaying = !_isSirenPlaying;
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(_isSirenPlaying ? 'High-decibel deterrent siren activated!' : 'Siren stopped.'),
-        backgroundColor: _isSirenPlaying ? AppTheme.emergencyRed : AppTheme.safeGreen,
-      ),
-    );
-  }
-
-  Future<void> _callHelpline(String number) async {
+  Future<void> _callHelpline(BuildContext context, String number, String name) async {
     final uri = Uri.parse('tel:$number');
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri);
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Calling $name: $number')),
+          );
+        }
+      }
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Dialing $name: $number')),
+        );
+      }
     }
-  }
-
-  @override
-  void dispose() {
-    if (_isFlashlightOn) {
-      TorchLight.disableTorch().catchError((_) {});
-    }
-    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final toolkit = context.watch<ToolkitProvider>();
+
     return Scaffold(
+      backgroundColor: AppTheme.backgroundLight,
       appBar: AppBar(
         title: const Text('Safety Toolkit'),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -75,118 +52,247 @@ class _SafetyToolkitScreenState extends State<SafetyToolkitScreen> {
             ),
             const SizedBox(height: 12),
 
+            // Flashlight & Siren Tiles Row
             Row(
               children: [
                 // Flashlight Toggle
                 Expanded(
-                  child: InkWell(
-                    onTap: _toggleFlashlight,
-                    borderRadius: BorderRadius.circular(16),
-                    child: Ink(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: _isFlashlightOn ? Colors.amber.shade100 : Colors.white,
-                        border: Border.all(
-                          color: _isFlashlightOn ? Colors.amber : Colors.grey.shade200,
-                          width: 2,
+                  child: SafeCard(
+                    padding: const EdgeInsets.all(16),
+                    backgroundColor: toolkit.isFlashlightOn ? Colors.amber.shade50 : AppTheme.surfaceWhite,
+                    borderColor: toolkit.isFlashlightOn ? Colors.amber.shade400 : AppTheme.borderLight,
+                    onTap: () => toolkit.toggleFlashlight(),
+                    child: Column(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: toolkit.isFlashlightOn ? Colors.amber.shade200 : AppTheme.surfaceMuted,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            toolkit.isFlashlightOn ? Icons.flash_on : Icons.flash_off,
+                            color: toolkit.isFlashlightOn ? Colors.amber.shade900 : AppTheme.textSecondary,
+                            size: 28,
+                          ),
                         ),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Column(
-                        children: [
-                          Icon(
-                            _isFlashlightOn ? Icons.flash_on : Icons.flash_off,
-                            size: 40,
-                            color: _isFlashlightOn ? Colors.amber.shade800 : Colors.grey,
+                        const SizedBox(height: 10),
+                        const Text('Flashlight', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                        Text(
+                          toolkit.isFlashlightOn ? 'ON' : 'OFF',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: toolkit.isFlashlightOn ? Colors.amber.shade900 : AppTheme.textTertiary,
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _isFlashlightOn ? 'FLASHLIGHT ON' : 'Flashlight',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: _isFlashlightOn ? Colors.amber.shade900 : AppTheme.textPrimary,
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
                 const SizedBox(width: 14),
 
-                // Loud Siren Toggle
+                // Deterrent Siren Toggle
                 Expanded(
-                  child: InkWell(
-                    onTap: _toggleSiren,
-                    borderRadius: BorderRadius.circular(16),
-                    child: Ink(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: _isSirenPlaying ? Colors.red.shade100 : Colors.white,
-                        border: Border.all(
-                          color: _isSirenPlaying ? AppTheme.emergencyRed : Colors.grey.shade200,
-                          width: 2,
+                  child: SafeCard(
+                    padding: const EdgeInsets.all(16),
+                    backgroundColor: toolkit.isSirenActive ? AppTheme.emergencyLightRed : AppTheme.surfaceWhite,
+                    borderColor: toolkit.isSirenActive ? AppTheme.emergencyRed : AppTheme.borderLight,
+                    onTap: () => toolkit.toggleSiren(),
+                    child: Column(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: toolkit.isSirenActive ? AppTheme.emergencyRed : AppTheme.surfaceMuted,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            toolkit.isSirenActive ? Icons.volume_up : Icons.volume_off,
+                            color: toolkit.isSirenActive ? Colors.white : AppTheme.textSecondary,
+                            size: 28,
+                          ),
                         ),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Column(
-                        children: [
-                          Icon(
-                            _isSirenPlaying ? Icons.volume_up : Icons.volume_off,
-                            size: 40,
-                            color: _isSirenPlaying ? AppTheme.emergencyRed : Colors.grey,
+                        const SizedBox(height: 10),
+                        const Text('Deterrent Siren', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                        Text(
+                          toolkit.isSirenActive ? 'ALARM ACTIVE' : 'Loud deterrent',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: toolkit.isSirenActive ? AppTheme.emergencyRed : AppTheme.textTertiary,
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _isSirenPlaying ? 'SIREN PLAYING' : 'Loud Siren',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: _isSirenPlaying ? AppTheme.emergencyRed : AppTheme.textPrimary,
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 28),
+            const SizedBox(height: 24),
 
+            // Navigation Hub: Practice Test & Incident Evidence Locker
             const Text(
-              'Emergency Helplines (India)',
+              'Safety Resources & Tools',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
             ),
             const SizedBox(height: 12),
 
-            _buildHelplineTile('112', 'National Emergency Unified Hotline', 'Police, Fire, Ambulance'),
-            _buildHelplineTile('1091', 'Women Helpline (Domestic & Public)', 'Dedicated round-the-clock support'),
-            _buildHelplineTile('181', 'Women in Distress Helpline', 'National Commission for Women'),
-            _buildHelplineTile('1098', 'Childline Helpline', 'Children emergency & protection'),
+            SafeCard(
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SosTestScreen())),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppTheme.warningLightAmber,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.science_outlined, color: AppTheme.warningAmber, size: 24),
+                  ),
+                  const SizedBox(width: 14),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('SOS Practice & Test Mode', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                        Text('Safely simulate emergency hold without alarming contacts', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right, color: AppTheme.textTertiary),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+
+            SafeCard(
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const IncidentRecordScreen())),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppTheme.brandPrimaryLight,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.shield_moon_outlined, color: AppTheme.brandPrimary, size: 24),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Incident & Evidence Locker', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                        Text(
+                          '${toolkit.incidents.length} encrypted records saved locally',
+                          style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right, color: AppTheme.textTertiary),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Emergency Helplines Directory
+            const Text(
+              'National Emergency Helplines (One-Tap Dial)',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+            ),
+            const SizedBox(height: 12),
+
+            _buildHelplineTile(context, '112', 'National Emergency Unified', Icons.local_police, Colors.indigo),
+            const SizedBox(height: 8),
+            _buildHelplineTile(context, '1091', 'Women Safety Helpline', Icons.support_agent, AppTheme.emergencyRed),
+            const SizedBox(height: 8),
+            _buildHelplineTile(context, '181', 'Women in Distress Helpline', Icons.favorite, Colors.purple),
+            const SizedBox(height: 8),
+            _buildHelplineTile(context, '108', 'Emergency Ambulance', Icons.medical_services, AppTheme.safeGreen),
+            const SizedBox(height: 24),
+
+            // Safety Guides & Educational Walkthroughs
+            const Text(
+              'Safety Tips & Awareness',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+            ),
+            const SizedBox(height: 12),
+
+            _buildGuideCard(
+              title: 'Night Transit & Ride Hailing',
+              tip: 'Always match the vehicle license plate, driver photo, and share your live Safe Walk journey before boarding.',
+            ),
+            const SizedBox(height: 8),
+            _buildGuideCard(
+              title: 'Situational Awareness',
+              tip: 'Avoid walking with noise-canceling headphones in unlit or quiet alleys. Keep phone easily reachable.',
+            ),
+            const SizedBox(height: 8),
+            _buildGuideCard(
+              title: 'Zero-DLT Offline Safety',
+              tip: 'Svasheild sends direct carrier SMS with GPS links even when you have zero mobile data or WiFi.',
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildHelplineTile(String number, String title, String subtitle) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: AppTheme.emergencyRed.withOpacity(0.1),
-          child: const Icon(Icons.phone, color: AppTheme.emergencyRed),
-        ),
-        title: Text('$title ($number)', style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
-        trailing: ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppTheme.emergencyRed,
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+  Widget _buildHelplineTile(BuildContext context, String number, String name, IconData icon, Color color) {
+    return SafeCard(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      onTap: () => _callHelpline(context, number, name),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: color, size: 20),
           ),
-          onPressed: () => _callHelpline(number),
-          child: const Text('CALL', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-        ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                Text('Dial $number', style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.bold)),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceMuted,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(Icons.phone, size: 18, color: AppTheme.brandPrimary),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGuideCard({required String title, required String tip}) {
+    return SafeCard(
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.lightbulb_outline, color: AppTheme.brandPrimary, size: 18),
+              const SizedBox(width: 8),
+              Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(tip, style: const TextStyle(fontSize: 12.5, color: AppTheme.textSecondary, height: 1.4)),
+        ],
       ),
     );
   }

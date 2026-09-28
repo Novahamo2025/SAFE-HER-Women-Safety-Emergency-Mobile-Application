@@ -1,5 +1,13 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../core/providers/emergency_provider.dart';
+import '../../core/providers/toolkit_provider.dart';
 import '../../core/theme/app_theme.dart';
+import '../../widgets/safe_button.dart';
+import '../../widgets/safe_card.dart';
+import '../../widgets/security_pin_dialog.dart';
+import '../../widgets/status_badge.dart';
 
 class SosActiveScreen extends StatefulWidget {
   final double latitude;
@@ -15,48 +23,108 @@ class SosActiveScreen extends StatefulWidget {
   State<SosActiveScreen> createState() => _SosActiveScreenState();
 }
 
-class _SosActiveScreenState extends State<SosActiveScreen> {
-  final TextEditingController _pinController = TextEditingController();
+class _SosActiveScreenState extends State<SosActiveScreen> with SingleTickerProviderStateMixin {
+  late AnimationController _blinkController;
+  late Animation<double> _blinkAnimation;
+  Timer? _ticker;
+  int _secondsActive = 0;
 
-  void _showCancelDialog() {
+  @override
+  void initState() {
+    super.initState();
+    _blinkController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    )..repeat(reverse: true);
+
+    _blinkAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(parent: _blinkController, curve: Curves.easeInOut),
+    );
+
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() => _secondsActive++);
+    });
+  }
+
+  @override
+  void dispose() {
+    _blinkController.dispose();
+    _ticker?.cancel();
+    super.dispose();
+  }
+
+  String _formatDuration(int totalSeconds) {
+    final mins = (totalSeconds ~/ 60).toString().padLeft(2, '0');
+    final secs = (totalSeconds % 60).toString().padLeft(2, '0');
+    return '$mins:$secs';
+  }
+
+  Future<void> _handleEndEmergency() async {
+    final confirmed = await SecurityPinDialog.show(
+      context,
+      title: 'End Emergency SOS',
+      message: 'Enter your 4-digit security PIN to confirm you are safe and stop live location sharing:',
+      actionButtonText: 'I am Safe (End SOS)',
+    );
+
+    if (confirmed == true && mounted) {
+      final emergencyProvider = context.read<EmergencyProvider>();
+      await emergencyProvider.endEmergency();
+
+      if (mounted) {
+        Navigator.of(context).pop(); // Return to dashboard
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Emergency resolved safely. Live location sharing stopped.'),
+            backgroundColor: AppTheme.safeGreen,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showQuickNoteDialog() {
+    final noteCtrl = TextEditingController();
     showDialog(
       context: context,
-      barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        title: const Text('Cancel Emergency?'),
+        title: const Text('Add Emergency Incident Note'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Enter your security PIN to confirm you are safe:'),
+            const Text(
+              'Add a brief note about what is happening. This is saved securely to your emergency record:',
+              style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+            ),
             const SizedBox(height: 12),
             TextField(
-              controller: _pinController,
-              keyboardType: TextInputType.number,
-              obscureText: true,
-              maxLength: 6,
+              controller: noteCtrl,
+              maxLines: 3,
               decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: 'Enter 4-6 digit PIN',
+                hintText: 'e.g. In an auto rickshaw, driver taking detour near market...',
               ),
             ),
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Keep Active'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.safeGreen),
             onPressed: () {
-              Navigator.pop(ctx); // Close dialog
-              Navigator.pop(context); // Return to dashboard
+              if (noteCtrl.text.isNotEmpty) {
+                context.read<ToolkitProvider>().addIncident(
+                  title: 'SOS Emergency Note',
+                  description: noteCtrl.text.trim(),
+                  latitude: widget.latitude,
+                  longitude: widget.longitude,
+                );
+              }
+              Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Emergency marked resolved. Contacts notified.')),
+                const SnackBar(content: Text('Note securely logged to emergency record.')),
               );
             },
-            child: const Text('I am Safe (End SOS)'),
+            child: const Text('Save Note'),
           ),
         ],
       ),
@@ -65,121 +133,324 @@ class _SosActiveScreenState extends State<SosActiveScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        _showCancelDialog();
-        return false;
+    final emergency = context.watch<EmergencyProvider>();
+    final toolkit = context.watch<ToolkitProvider>();
+
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          _handleEndEmergency();
+        }
       },
       child: Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: AppTheme.surfaceWhite,
         appBar: AppBar(
           automaticallyImplyLeading: false,
           backgroundColor: AppTheme.emergencyDarkRed,
-          title: const Text(
-            'EMERGENCY SOS ACTIVE',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1),
+          foregroundColor: Colors.white,
+          title: Row(
+            children: [
+              Container(
+                width: 10,
+                height: 10,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(width: 10),
+              const Text(
+                'EMERGENCY SOS ACTIVE',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.2,
+                  color: Colors.white,
+                ),
+              ),
+            ],
           ),
-          centerTitle: true,
+          actions: [
+            Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    _formatDuration(_secondsActive),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
         body: Column(
           children: [
-            // Warning strip
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-              color: AppTheme.emergencyRed,
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.warning, color: Colors.white, size: 20),
-                  SizedBox(width: 8),
-                  Text(
-                    'Streaming live GPS coordinates to contacts',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            // High Visibility Alert Strip
+            AnimatedBuilder(
+              animation: _blinkAnimation,
+              builder: (context, child) {
+                return Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                  color: AppTheme.emergencyRed.withOpacity(_blinkAnimation.value),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.sensors, color: Colors.white, size: 20),
+                      SizedBox(width: 8),
+                      Text(
+                        'Live GPS & Alerts Broadcast Active',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13.5),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                );
+              },
             ),
 
             Expanded(
-              child: Padding(
+              child: SingleChildScrollView(
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Coordinates Card
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.my_location, color: AppTheme.emergencyRed, size: 32),
-                            const SizedBox(width: 14),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text('Current Location', style: TextStyle(fontWeight: FontWeight.bold)),
-                                Text(
-                                  'Lat: ${widget.latitude.toStringAsFixed(5)}, Lng: ${widget.longitude.toStringAsFixed(5)}',
-                                  style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+                    // Location & Radar Card
+                    SafeCard(
+                      borderColor: AppTheme.emergencyRed.withOpacity(0.3),
+                      backgroundColor: AppTheme.emergencyLightRed.withOpacity(0.4),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: const BoxDecoration(
+                                  color: AppTheme.emergencyRed,
+                                  shape: BoxShape.circle,
                                 ),
+                                child: const Icon(Icons.my_location, color: Colors.white, size: 20),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'Live Location Stream',
+                                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                                    ),
+                                    Text(
+                                      'Accuracy: ±${emergency.accuracy.toStringAsFixed(1)}m • Updated now',
+                                      style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const StatusBadge(
+                                label: 'STREAMING',
+                                type: StatusBadgeType.error,
+                                showDot: true,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: AppTheme.borderLight),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('LATITUDE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.textTertiary)),
+                                    Text(
+                                      emergency.latitude.toStringAsFixed(5),
+                                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                                    ),
+                                  ],
+                                ),
+                                Container(width: 1, height: 28, color: AppTheme.borderLight),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('LONGITUDE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.textTertiary)),
+                                    Text(
+                                      emergency.longitude.toStringAsFixed(5),
+                                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                                    ),
+                                  ],
+                                ),
+                                Container(width: 1, height: 28, color: AppTheme.borderLight),
+                                const Icon(Icons.map_outlined, color: AppTheme.brandPrimary, size: 24),
                               ],
                             ),
-                          ],
-                        ),
+                          ),
+                          const SizedBox(height: 10),
+                          const Text(
+                            'Location sharing is temporary and active only during this emergency.',
+                            style: TextStyle(fontSize: 11.5, color: AppTheme.textSecondary, fontStyle: FontStyle.italic),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
 
+                    // Contact Notification Delivery Status
                     const Text(
-                      'Emergency Delivery Status',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      'Trusted Contacts Notification Status',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
                     ),
                     const SizedBox(height: 10),
 
-                    // Delivery status list
-                    _buildDeliveryItem(
-                      name: 'Papa (Priority 1)',
-                      phone: '+91 98765 43210',
-                      channel: 'Native SMS',
-                      status: 'Dispatched',
-                      icon: Icons.check_circle,
-                      iconColor: AppTheme.safeGreen,
-                    ),
-                    _buildDeliveryItem(
-                      name: 'Mom (Priority 2)',
-                      phone: '+91 98765 43211',
-                      channel: 'Server Gateway',
-                      status: 'Delivered',
-                      icon: Icons.check_circle,
-                      iconColor: AppTheme.safeGreen,
-                    ),
-                    _buildDeliveryItem(
-                      name: 'Local Emergency Network',
-                      phone: 'Helpline 112',
-                      channel: 'Direct Alert',
-                      status: 'Standing By',
-                      icon: Icons.access_time,
-                      iconColor: Colors.orange,
-                    ),
-
-                    const Spacer(),
-
-                    // End SOS button
-                    SizedBox(
-                      width: double.infinity,
-                      height: 54,
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.safeGreen,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    if (emergency.deliveryStatuses.isEmpty)
+                      const SafeCard(
+                        padding: EdgeInsets.all(14),
+                        child: Row(
+                          children: [
+                            Icon(Icons.check_circle_outline, color: AppTheme.safeGreen, size: 20),
+                            SizedBox(width: 10),
+                            Text('Emergency alerts dispatched to your contacts.', style: TextStyle(fontSize: 13)),
+                          ],
                         ),
-                        icon: const Icon(Icons.lock_open, color: Colors.white),
-                        label: const Text(
-                          'I AM SAFE • END EMERGENCY',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                      )
+                    else
+                      ...emergency.deliveryStatuses.map((delivery) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppTheme.surfaceWhite,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: AppTheme.borderLight),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.safeGreenLight,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(Icons.check, color: AppTheme.safeGreen, size: 16),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        delivery.contactName,
+                                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                                      ),
+                                      Text(
+                                        '${delivery.phone} • ${delivery.channel}',
+                                        style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                StatusBadge(
+                                  label: delivery.status,
+                                  type: StatusBadgeType.success,
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }),
+
+                    const SizedBox(height: 20),
+
+                    // Quick Emergency Actions Row
+                    const Text(
+                      'Emergency Tools',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        // Siren deterrent button
+                        Expanded(
+                          child: SafeCard(
+                            padding: const EdgeInsets.all(12),
+                            backgroundColor: toolkit.isSirenActive ? AppTheme.emergencyLightRed : AppTheme.surfaceWhite,
+                            borderColor: toolkit.isSirenActive ? AppTheme.emergencyRed : AppTheme.borderLight,
+                            onTap: () => toolkit.toggleSiren(),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  toolkit.isSirenActive ? Icons.volume_up : Icons.volume_mute,
+                                  color: toolkit.isSirenActive ? AppTheme.emergencyRed : AppTheme.textPrimary,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  toolkit.isSirenActive ? 'SIREN ON' : 'Deterrent Siren',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: toolkit.isSirenActive ? AppTheme.emergencyRed : AppTheme.textPrimary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                        onPressed: _showCancelDialog,
+                        const SizedBox(width: 12),
+                        // Quick Note
+                        Expanded(
+                          child: SafeCard(
+                            padding: const EdgeInsets.all(12),
+                            onTap: _showQuickNoteDialog,
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.note_add_outlined, color: AppTheme.brandPrimary, size: 20),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Record Note',
+                                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 32),
+
+                    // Large END EMERGENCY button
+                    SafeButton(
+                      text: 'I AM SAFE — END EMERGENCY',
+                      icon: Icons.check_circle_outline,
+                      type: SafeButtonType.danger,
+                      height: 56,
+                      onPressed: _handleEndEmergency,
+                    ),
+                    const SizedBox(height: 8),
+                    const Center(
+                      child: Text(
+                        'Requires your 4-digit security PIN to confirm resolution',
+                        style: TextStyle(fontSize: 12, color: AppTheme.textTertiary),
                       ),
                     ),
                   ],
@@ -187,31 +458,6 @@ class _SosActiveScreenState extends State<SosActiveScreen> {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDeliveryItem({
-    required String name,
-    required String phone,
-    required String channel,
-    required String status,
-    required IconData icon,
-    required Color iconColor,
-  }) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: iconColor.withOpacity(0.1),
-          child: Icon(icon, color: iconColor, size: 20),
-        ),
-        title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-        subtitle: Text('$phone • $channel', style: const TextStyle(fontSize: 12)),
-        trailing: Text(
-          status,
-          style: TextStyle(color: iconColor, fontWeight: FontWeight.bold, fontSize: 12),
         ),
       ),
     );

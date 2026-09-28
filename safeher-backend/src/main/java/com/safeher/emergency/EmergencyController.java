@@ -2,7 +2,9 @@ package com.safeher.emergency;
 
 import com.safeher.common.ApiResponse;
 import com.safeher.emergency.dto.EmergencyCancelRequest;
+import com.safeher.emergency.dto.EmergencyEventResponse;
 import com.safeher.emergency.dto.EmergencyStartRequest;
+import com.safeher.emergency.dto.LocationUpdateRequest;
 import com.safeher.user.User;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -19,28 +21,37 @@ public class EmergencyController {
     private final EmergencyService emergencyService;
 
     @PostMapping("/start")
-    public ResponseEntity<ApiResponse<EmergencyEvent>> startEmergency(
+    public ResponseEntity<ApiResponse<EmergencyEventResponse>> startEmergency(
             @AuthenticationPrincipal User user,
             @Valid @RequestBody EmergencyStartRequest request) {
-        EmergencyEvent event = emergencyService.startEmergency(user.getId(), request);
+        EmergencyEventResponse response = emergencyService.startEmergency(user.getId(), request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.ok(event, "Emergency alert activated successfully"));
+                .body(ApiResponse.ok(response, "Emergency alert activated successfully"));
+    }
+
+    @PostMapping("/{id}/location")
+    public ResponseEntity<ApiResponse<Void>> updateLocation(
+            @AuthenticationPrincipal User user,
+            @PathVariable Long id,
+            @Valid @RequestBody LocationUpdateRequest request) {
+        emergencyService.updateLocation(user.getId(), id, request);
+        return ResponseEntity.ok(ApiResponse.ok(null, "Location updated successfully"));
     }
 
     @PostMapping("/{id}/cancel")
-    public ResponseEntity<ApiResponse<EmergencyEvent>> cancelEmergency(
+    public ResponseEntity<ApiResponse<EmergencyEventResponse>> cancelEmergency(
             @AuthenticationPrincipal User user,
             @PathVariable Long id,
             @RequestBody(required = false) EmergencyCancelRequest request) {
-        EmergencyEvent event = emergencyService.cancelEmergency(user.getId(), id, request);
-        return ResponseEntity.ok(ApiResponse.ok(event, "Emergency alert cancelled and closed"));
+        EmergencyEventResponse response = emergencyService.cancelEmergency(user.getId(), id, request);
+        return ResponseEntity.ok(ApiResponse.ok(response, "Emergency alert cancelled and closed"));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<EmergencyEvent>> getEmergencyStatus(
+    public ResponseEntity<ApiResponse<EmergencyEventResponse>> getEmergencyStatus(
             @AuthenticationPrincipal User user,
             @PathVariable Long id) {
-        EmergencyEvent event = emergencyService.getEmergencyStatus(user.getId(), id);
-        return ResponseEntity.ok(ApiResponse.ok(event, "Emergency status retrieved"));
+        EmergencyEventResponse response = emergencyService.getEmergencyStatus(user.getId(), id);
+        return ResponseEntity.ok(ApiResponse.ok(response, "Emergency status retrieved"));
     }
 }

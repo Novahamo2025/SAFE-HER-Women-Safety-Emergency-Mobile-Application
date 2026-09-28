@@ -8,7 +8,10 @@ class LocalStorage {
   static const String _keyAccessToken = 'safeher_access_token';
   static const String _keyRefreshToken = 'safeher_refresh_token';
   static const String _keyUserPin = 'safeher_user_pin';
+  static const String _keyUserData = 'safeher_user_data';
   static const String _keyOfflineSosQueue = 'safeher_offline_sos_queue';
+
+  // --- Token Management ---
 
   static Future<void> saveTokens({required String accessToken, required String refreshToken}) async {
     await _secureStorage.write(key: _keyAccessToken, value: accessToken);
@@ -19,10 +22,34 @@ class LocalStorage {
     return await _secureStorage.read(key: _keyAccessToken);
   }
 
+  static Future<String?> getRefreshToken() async {
+    return await _secureStorage.read(key: _keyRefreshToken);
+  }
+
   static Future<void> clearTokens() async {
     await _secureStorage.delete(key: _keyAccessToken);
     await _secureStorage.delete(key: _keyRefreshToken);
   }
+
+  // --- User Data ---
+
+  static Future<void> saveUserData(Map<String, dynamic> userData) async {
+    await _secureStorage.write(key: _keyUserData, value: jsonEncode(userData));
+  }
+
+  static Future<Map<String, dynamic>?> getUserData() async {
+    final data = await _secureStorage.read(key: _keyUserData);
+    if (data != null) {
+      return jsonDecode(data) as Map<String, dynamic>;
+    }
+    return null;
+  }
+
+  static Future<void> clearUserData() async {
+    await _secureStorage.delete(key: _keyUserData);
+  }
+
+  // --- PIN Management ---
 
   static Future<void> saveUserPin(String pin) async {
     await _secureStorage.write(key: _keyUserPin, value: pin);
@@ -32,7 +59,8 @@ class LocalStorage {
     return await _secureStorage.read(key: _keyUserPin);
   }
 
-  // Offline SOS queue persistence (Blocker 4: Dead zone resiliency)
+  // --- Offline SOS Queue ---
+
   static Future<void> queueOfflineEmergency(Map<String, dynamic> eventData) async {
     final prefs = await SharedPreferences.getInstance();
     List<String> queue = prefs.getStringList(_keyOfflineSosQueue) ?? [];
@@ -49,5 +77,13 @@ class LocalStorage {
   static Future<void> clearOfflineQueue() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_keyOfflineSosQueue);
+  }
+
+  // --- Clear All ---
+
+  static Future<void> clearAll() async {
+    await clearTokens();
+    await clearUserData();
+    await _secureStorage.delete(key: _keyUserPin);
   }
 }

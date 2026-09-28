@@ -45,6 +45,13 @@ public class User {
     @Builder.Default
     private Boolean isVerified = false;
 
+    @Column(name = "account_status", nullable = false, length = 30)
+    @Builder.Default
+    private String accountStatus = "ACTIVE";
+
+    @Column(name = "last_login_at")
+    private Instant lastLoginAt;
+
     @CreationTimestamp
     @Column(nullable = false, updatable = false, name = "created_at")
     private Instant createdAt;

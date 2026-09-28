@@ -11,4 +11,5 @@ public interface ContactRepository extends JpaRepository<EmergencyContact, Long>
     List<EmergencyContact> findByUserIdOrderByPriorityAsc(Long userId);
     Optional<EmergencyContact> findByIdAndUserId(Long id, Long userId);
     boolean existsByUserIdAndPhone(Long userId, String phone);
+    long countByUserId(Long userId);
 }

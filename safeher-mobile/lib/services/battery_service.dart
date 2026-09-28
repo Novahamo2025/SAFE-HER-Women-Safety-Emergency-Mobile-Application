@@ -1,13 +1,15 @@
-import 'package:disable_battery_optimization/disable_battery_optimization.dart';
+import 'package:flutter/services.dart';
 
 class BatteryService {
+  static const MethodChannel _channel = MethodChannel('com.safeher.app/battery');
+
   /**
    * Solves Blocker 3: Detects OEM battery management (Xiaomi, Vivo, Oppo, OnePlus)
    * and deep-links the user to the device's battery exemption settings.
    */
   static Future<bool> isBatteryOptimizationDisabled() async {
     try {
-      bool? isIgnored = await DisableBatteryOptimization.isBatteryOptimizationDisabled;
+      final bool? isIgnored = await _channel.invokeMethod<bool>('isBatteryOptimizationDisabled');
       return isIgnored ?? false;
     } catch (e) {
       return true; // Default to safe if unsupported
@@ -16,7 +18,7 @@ class BatteryService {
 
   static Future<void> requestDisableBatteryOptimization() async {
     try {
-      await DisableBatteryOptimization.showDisableBatteryOptimizationSettings();
+      await _channel.invokeMethod('requestDisableBatteryOptimization');
     } catch (e) {
       // Fallback
     }
@@ -24,7 +26,7 @@ class BatteryService {
 
   static Future<void> openAutoStartSettings() async {
     try {
-      await DisableBatteryOptimization.showDisableManufacturerBatteryOptimizationSettings();
+      await _channel.invokeMethod('openAutoStartSettings');
     } catch (e) {
       // Fallback
     }

@@ -29,11 +29,13 @@ export default function App() {
       {/* Sidebar */}
       <aside style={{ width: '260px', backgroundColor: '#1e293b', borderRight: '1px solid #334155', padding: '24px 16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '36px', paddingLeft: '8px' }}>
-          <div style={{ backgroundColor: '#ef4444', padding: '8px', borderRadius: '10px', display: 'flex' }}>
-            <Shield size={24} color="#ffffff" />
-          </div>
+          <img
+            src="/svashield_logo.png"
+            alt="Svasheild Logo"
+            style={{ width: '40px', height: '40px', objectFit: 'contain', borderRadius: '8px' }}
+          />
           <div>
-            <h1 style={{ fontSize: '18px', fontWeight: '800', letterSpacing: '0.5px' }}>SafeHer</h1>
+            <h1 style={{ fontSize: '18px', fontWeight: '800', letterSpacing: '0.5px' }}>Svasheild</h1>
             <p style={{ fontSize: '11px', color: '#94a3b8' }}>Operations Command</p>
           </div>
         </div>

@@ -5,6 +5,8 @@ class ApiConstants {
   // Auth endpoints
   static const String register = '$baseUrl/auth/register';
   static const String login = '$baseUrl/auth/login';
+  static const String refreshToken = '$baseUrl/auth/refresh';
+  static const String logout = '$baseUrl/auth/logout';
 
   // Emergency endpoints
   static const String emergencyStart = '$baseUrl/emergency/start';

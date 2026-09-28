@@ -28,14 +28,12 @@ dependencies:
   url_launcher: ^6.3.0
   torch_light: ^1.0.0
   audioplayers: ^6.0.0
-  vibration: ^2.0.0
 
   # Storage & Offline Persistence
   flutter_secure_storage: ^9.2.2
   shared_preferences: ^2.2.3
 
   # Battery Optimization & Foreground Service
-  disable_battery_optimization: ^1.1.0
   flutter_local_notifications: ^17.2.1
 
 dev_dependencies:
