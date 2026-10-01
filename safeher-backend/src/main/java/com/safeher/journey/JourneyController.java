@@ -49,4 +49,12 @@ public class JourneyController {
         SafeJourney journey = journeyService.completeJourney(user.getId(), id);
         return ResponseEntity.ok(ApiResponse.ok(journey, "Safe journey completed safely"));
     }
+
+    @PostMapping("/{id}/cancel")
+    public ResponseEntity<ApiResponse<SafeJourney>> cancelJourney(
+            @AuthenticationPrincipal User user,
+            @PathVariable Long id) {
+        SafeJourney journey = journeyService.cancelJourney(user.getId(), id);
+        return ResponseEntity.ok(ApiResponse.ok(journey, "Safe journey cancelled"));
+    }
 }

@@ -1,5 +1,6 @@
 class JourneyModel {
   final int? id;
+  final int? serverId;
   final String destination;
   final int durationMinutes;
   final DateTime startedAt;
@@ -9,6 +10,7 @@ class JourneyModel {
 
   JourneyModel({
     this.id,
+    this.serverId,
     required this.destination,
     required this.durationMinutes,
     required this.startedAt,
@@ -36,6 +38,7 @@ class JourneyModel {
   factory JourneyModel.fromJson(Map<String, dynamic> json) {
     return JourneyModel(
       id: json['id'] as int?,
+      serverId: json['serverId'] as int?,
       destination: json['destination'] as String? ?? 'Unknown Destination',
       durationMinutes: json['durationMinutes'] as int? ?? 15,
       startedAt: json['startedAt'] != null
@@ -43,15 +46,20 @@ class JourneyModel {
           : DateTime.now(),
       expectedArrival: json['expectedArrival'] != null
           ? DateTime.parse(json['expectedArrival'] as String)
-          : DateTime.now().add(Duration(minutes: json['durationMinutes'] as int? ?? 15)),
+          : DateTime.now()
+              .add(Duration(minutes: json['durationMinutes'] as int? ?? 15)),
       status: json['status'] as String? ?? 'ACTIVE',
-      checkpoints: (json['checkpoints'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+      checkpoints: (json['checkpoints'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       if (id != null) 'id': id,
+      if (serverId != null) 'serverId': serverId,
       'destination': destination,
       'durationMinutes': durationMinutes,
       'startedAt': startedAt.toIso8601String(),
@@ -63,6 +71,7 @@ class JourneyModel {
 
   JourneyModel copyWith({
     int? id,
+    int? serverId,
     String? destination,
     int? durationMinutes,
     DateTime? startedAt,
@@ -72,6 +81,7 @@ class JourneyModel {
   }) {
     return JourneyModel(
       id: id ?? this.id,
+      serverId: serverId ?? this.serverId,
       destination: destination ?? this.destination,
       durationMinutes: durationMinutes ?? this.durationMinutes,
       startedAt: startedAt ?? this.startedAt,

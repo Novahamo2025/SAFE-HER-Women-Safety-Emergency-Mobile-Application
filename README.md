@@ -72,10 +72,11 @@ psql -U postgres -d safeher -f safeher-database/V2__seed_data.sql
 
 ### 2. Spring Boot Backend
 ```bash
-cd safeher-backend
-# Run with Maven wrapper
-./mvnw spring-boot:run
-# Server starts at http://localhost:8080
+cd safeher-backend                                                                           
+# Configure the Supabase database password before starting
+$env:SUPABASE_DB_PASSWORD = "<your-database-password>"
+.\mvnw.cmd spring-boot:run
+# Server starts at http://localhost:8081
 ```
 
 ### 3. Flutter Mobile Application
@@ -90,5 +91,5 @@ flutter run
 cd safeher-admin
 npm install
 npm run dev
-# Dashboard available at http://localhost:5173
+# Dashboard available at http://localhost:5173; sign in with an account that has ROLE_ADMIN
 ```

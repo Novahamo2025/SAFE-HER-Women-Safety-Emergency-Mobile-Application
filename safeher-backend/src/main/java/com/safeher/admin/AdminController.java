@@ -1,10 +1,8 @@
 package com.safeher.admin;
 
 import com.safeher.admin.dto.DashboardStatsResponse;
+import com.safeher.admin.dto.AdminDashboardData;
 import com.safeher.common.ApiResponse;
-import com.safeher.emergency.EmergencyEvent;
-import com.safeher.notification.NotificationDelivery;
-import com.safeher.user.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,20 +25,35 @@ public class AdminController {
     }
 
     @GetMapping("/emergencies")
-    public ResponseEntity<ApiResponse<List<EmergencyEvent>>> getActiveEmergencies() {
-        List<EmergencyEvent> emergencies = adminService.getActiveEmergencies();
+    public ResponseEntity<ApiResponse<List<AdminDashboardData.Emergency>>> getActiveEmergencies() {
+        List<AdminDashboardData.Emergency> emergencies = adminService.getActiveEmergencies();
         return ResponseEntity.ok(ApiResponse.ok(emergencies, "Active emergency events retrieved"));
     }
 
+    @GetMapping("/journeys")
+    public ResponseEntity<ApiResponse<List<AdminDashboardData.Journey>>> getJourneys() {
+        return ResponseEntity.ok(ApiResponse.ok(adminService.getJourneys(), "Safe journeys retrieved"));
+    }
+
+    @GetMapping("/checkins")
+    public ResponseEntity<ApiResponse<List<AdminDashboardData.CheckIn>>> getCheckIns() {
+        return ResponseEntity.ok(ApiResponse.ok(adminService.getCheckIns(), "Check-ins retrieved"));
+    }
+
+    @GetMapping("/contacts")
+    public ResponseEntity<ApiResponse<List<AdminDashboardData.Contact>>> getContacts() {
+        return ResponseEntity.ok(ApiResponse.ok(adminService.getContacts(), "Emergency contacts retrieved"));
+    }
+
     @GetMapping("/deliveries")
-    public ResponseEntity<ApiResponse<List<NotificationDelivery>>> getDeliveries() {
-        List<NotificationDelivery> deliveries = adminService.getDeliveries();
+    public ResponseEntity<ApiResponse<List<AdminDashboardData.Delivery>>> getDeliveries() {
+        List<AdminDashboardData.Delivery> deliveries = adminService.getDeliveries();
         return ResponseEntity.ok(ApiResponse.ok(deliveries, "Notification deliveries retrieved"));
     }
 
     @GetMapping("/users")
-    public ResponseEntity<ApiResponse<List<User>>> getUsers() {
-        List<User> users = adminService.getAllUsers();
+    public ResponseEntity<ApiResponse<List<AdminDashboardData.User>>> getUsers() {
+        List<AdminDashboardData.User> users = adminService.getAllUsers();
         return ResponseEntity.ok(ApiResponse.ok(users, "User accounts retrieved"));
     }
 }

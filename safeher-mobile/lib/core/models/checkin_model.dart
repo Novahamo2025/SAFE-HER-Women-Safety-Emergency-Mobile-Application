@@ -1,5 +1,6 @@
 class CheckInModel {
   final int? id;
+  final int? serverId;
   final int intervalMinutes;
   final DateTime scheduledTime;
   final String status; // SCHEDULED, CONFIRMED_SAFE, MISSED, ESCALATED
@@ -8,6 +9,7 @@ class CheckInModel {
 
   CheckInModel({
     this.id,
+    this.serverId,
     required this.intervalMinutes,
     required this.scheduledTime,
     this.status = 'SCHEDULED',
@@ -29,10 +31,12 @@ class CheckInModel {
   factory CheckInModel.fromJson(Map<String, dynamic> json) {
     return CheckInModel(
       id: json['id'] as int?,
+      serverId: json['serverId'] as int?,
       intervalMinutes: json['intervalMinutes'] as int? ?? 30,
       scheduledTime: json['scheduledTime'] != null
           ? DateTime.parse(json['scheduledTime'] as String)
-          : DateTime.now().add(Duration(minutes: json['intervalMinutes'] as int? ?? 30)),
+          : DateTime.now()
+              .add(Duration(minutes: json['intervalMinutes'] as int? ?? 30)),
       status: json['status'] as String? ?? 'SCHEDULED',
       note: json['note'] as String? ?? '',
       createdAt: json['createdAt'] != null
@@ -44,6 +48,7 @@ class CheckInModel {
   Map<String, dynamic> toJson() {
     return {
       if (id != null) 'id': id,
+      if (serverId != null) 'serverId': serverId,
       'intervalMinutes': intervalMinutes,
       'scheduledTime': scheduledTime.toIso8601String(),
       'status': status,
@@ -54,6 +59,7 @@ class CheckInModel {
 
   CheckInModel copyWith({
     int? id,
+    int? serverId,
     int? intervalMinutes,
     DateTime? scheduledTime,
     String? status,
@@ -62,6 +68,7 @@ class CheckInModel {
   }) {
     return CheckInModel(
       id: id ?? this.id,
+      serverId: serverId ?? this.serverId,
       intervalMinutes: intervalMinutes ?? this.intervalMinutes,
       scheduledTime: scheduledTime ?? this.scheduledTime,
       status: status ?? this.status,

@@ -53,6 +53,15 @@ public class JourneyService {
     }
 
     @Transactional
+    public SafeJourney cancelJourney(Long userId, Long journeyId) {
+        SafeJourney journey = journeyRepository.findByIdAndUserId(journeyId, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Journey not found"));
+
+        journey.setStatus("CANCELLED");
+        return journeyRepository.save(journey);
+    }
+
+    @Transactional
     public SafeJourney checkIn(Long userId, Long journeyId) {
         SafeJourney journey = journeyRepository.findByIdAndUserId(journeyId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Journey not found"));

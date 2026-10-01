@@ -46,4 +46,26 @@ public class CheckInService {
         checkIn.setCompletedAt(Instant.now());
         return checkInRepository.save(checkIn);
     }
+
+    @Transactional
+    public CheckIn markMissed(Long userId, Long checkInId) {
+        return updateStatus(userId, checkInId, "MISSED");
+    }
+
+    @Transactional
+    public CheckIn escalate(Long userId, Long checkInId) {
+        return updateStatus(userId, checkInId, "ESCALATED");
+    }
+
+    @Transactional
+    public CheckIn cancel(Long userId, Long checkInId) {
+        return updateStatus(userId, checkInId, "CANCELLED");
+    }
+
+    private CheckIn updateStatus(Long userId, Long checkInId, String status) {
+        CheckIn checkIn = checkInRepository.findByIdAndUserId(checkInId, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Check-in not found"));
+        checkIn.setStatus(status);
+        return checkInRepository.save(checkIn);
+    }
 }

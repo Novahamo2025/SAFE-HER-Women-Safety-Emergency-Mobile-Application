@@ -41,4 +41,28 @@ public class CheckInController {
         CheckIn checkIn = checkInService.completeCheckIn(user.getId(), id);
         return ResponseEntity.ok(ApiResponse.ok(checkIn, "Safety check-in confirmed"));
     }
+
+    @PostMapping("/{id}/missed")
+    public ResponseEntity<ApiResponse<CheckIn>> markMissed(
+            @AuthenticationPrincipal User user,
+            @PathVariable Long id) {
+        CheckIn checkIn = checkInService.markMissed(user.getId(), id);
+        return ResponseEntity.ok(ApiResponse.ok(checkIn, "Check-in marked missed"));
+    }
+
+    @PostMapping("/{id}/escalate")
+    public ResponseEntity<ApiResponse<CheckIn>> escalate(
+            @AuthenticationPrincipal User user,
+            @PathVariable Long id) {
+        CheckIn checkIn = checkInService.escalate(user.getId(), id);
+        return ResponseEntity.ok(ApiResponse.ok(checkIn, "Check-in escalated"));
+    }
+
+    @PostMapping("/{id}/cancel")
+    public ResponseEntity<ApiResponse<CheckIn>> cancel(
+            @AuthenticationPrincipal User user,
+            @PathVariable Long id) {
+        CheckIn checkIn = checkInService.cancel(user.getId(), id);
+        return ResponseEntity.ok(ApiResponse.ok(checkIn, "Check-in cancelled"));
+    }
 }

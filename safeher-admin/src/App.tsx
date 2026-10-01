@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Shield, AlertTriangle, Radio, Users, CheckCircle2, Clock, MapPin, RefreshCw, Send } from 'lucide-react';
+import { useState } from 'react';
+import { AlertTriangle, Radio, Users, CheckCircle2, MapPin, RefreshCw, Send } from 'lucide-react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'overview' | 'emergencies' | 'deliveries'>('overview');
