@@ -4,6 +4,8 @@ import '../../core/auth/auth_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../auth/login_screen.dart';
 import '../dashboard/dashboard_screen.dart';
+import '../onboarding/permission_onboarding_screen.dart';
+import '../onboarding/user_guide_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -51,9 +53,22 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     if (!mounted) return;
 
     if (authProvider.isAuthenticated) {
+      final hasCompletedPerms = await PermissionOnboardingScreen.hasCompleted();
+      final hasCompletedGuide = await UserGuideScreen.hasCompletedGuide();
+      if (!mounted) return;
+
+      Widget destination;
+      if (!hasCompletedPerms) {
+        destination = const PermissionOnboardingScreen();
+      } else if (!hasCompletedGuide) {
+        destination = const UserGuideScreen();
+      } else {
+        destination = const DashboardScreen();
+      }
+
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(
-          pageBuilder: (_, __, ___) => const DashboardScreen(),
+          pageBuilder: (_, __, ___) => destination,
           transitionsBuilder: (_, animation, __, child) =>
               FadeTransition(opacity: animation, child: child),
           transitionDuration: const Duration(milliseconds: 400),
@@ -73,47 +88,63 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: AppTheme.surfaceWhite,
+      backgroundColor: isDark ? AppTheme.backgroundDark : AppTheme.surfaceWhite,
       body: Center(
         child: FadeTransition(
           opacity: _fadeAnimation,
           child: ScaleTransition(
             scale: _scaleAnimation,
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Svasheild Brand Logo
-                Image.asset(
-                  'assets/images/svasheild_logo.png',
-                  width: 120,
-                  height: 120,
-                  fit: BoxFit.contain,
-                ),
-                const SizedBox(height: 20),
-                const Text(
-                  'Svasheild',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 2.0,
-                    color: AppTheme.textPrimary,
+                // Single SvaShield Brand Logo (already contains name)
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: (isDark ? Colors.black : AppTheme.brandPrimary).withValues(alpha: 0.12),
+                        blurRadius: 24,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Image.asset(
+                      'assets/images/svashield_logo.png',
+                      width: 130,
+                      height: 130,
+                      fit: BoxFit.contain,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 8),
-                const Text(
+                const SizedBox(height: 24),
+
+                // Tagline
+                Text(
                   'Stay Safe • Connected • Protected',
+                  textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: AppTheme.textSecondary,
-                    letterSpacing: 0.5,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? AppTheme.textSecondaryDark : AppTheme.textSecondary,
+                    letterSpacing: 0.8,
                   ),
                 ),
-                const SizedBox(height: 48),
+                const SizedBox(height: 40),
+
+                // Loading Indicator
                 const SizedBox(
-                  width: 24,
-                  height: 24,
+                  width: 26,
+                  height: 26,
                   child: CircularProgressIndicator(
                     color: AppTheme.brandPrimary,
                     strokeWidth: 2.5,

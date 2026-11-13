@@ -4,12 +4,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:torch_light/torch_light.dart';
 import '../../services/vibration_service.dart';
 import '../models/incident_model.dart';
+import '../services/media_service.dart';
+import '../services/siren_service.dart';
 
 class ToolkitProvider extends ChangeNotifier {
   bool _isFlashlightOn = false;
   bool _isSirenActive = false;
   List<IncidentModel> _incidents = [];
-  bool _isSosTestModeActive = false;
+  final bool _isSosTestModeActive = false;
 
   bool get isFlashlightOn => _isFlashlightOn;
   bool get isSirenActive => _isSirenActive;
@@ -38,17 +40,33 @@ class ToolkitProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> toggleSiren() async {
-    _isSirenActive = !_isSirenActive;
+  Future<bool> toggleSiren() async {
     if (_isSirenActive) {
+      await stopSiren();
+      return false;
+    } else {
+      return await startSiren();
+    }
+  }
+
+  Future<bool> startSiren() async {
+    final success = await SirenService.startSiren();
+    if (success) {
+      _isSirenActive = true;
       try {
         await VibrationService.vibrateEmergency();
       } catch (_) {}
+      notifyListeners();
+      return true;
+    } else {
+      _isSirenActive = false;
+      notifyListeners();
+      return false;
     }
-    notifyListeners();
   }
 
-  void stopSiren() {
+  Future<void> stopSiren() async {
+    await SirenService.stopSiren();
     _isSirenActive = false;
     notifyListeners();
   }
@@ -85,6 +103,7 @@ class ToolkitProvider extends ChangeNotifier {
     required String description,
     String? audioPath,
     String? photoPath,
+    String? videoPath,
     double? latitude,
     double? longitude,
   }) async {
@@ -95,6 +114,7 @@ class ToolkitProvider extends ChangeNotifier {
       timestamp: DateTime.now(),
       audioPath: audioPath,
       photoPath: photoPath,
+      videoPath: videoPath,
       latitude: latitude,
       longitude: longitude,
       isEncryptedLocally: true,
@@ -107,6 +127,28 @@ class ToolkitProvider extends ChangeNotifier {
   }
 
   Future<void> deleteIncident(String id) async {
+    final toDelete = _incidents.firstWhere(
+      (item) => item.id == id,
+      orElse: () => IncidentModel(
+        id: '',
+        title: '',
+        description: '',
+        timestamp: DateTime.now(),
+      ),
+    );
+
+    if (toDelete.id.isNotEmpty) {
+      if (toDelete.audioPath != null) {
+        await MediaService.deleteEvidenceFile(toDelete.audioPath!);
+      }
+      if (toDelete.photoPath != null) {
+        await MediaService.deleteEvidenceFile(toDelete.photoPath!);
+      }
+      if (toDelete.videoPath != null) {
+        await MediaService.deleteEvidenceFile(toDelete.videoPath!);
+      }
+    }
+
     _incidents.removeWhere((item) => item.id == id);
     await _saveIncidents();
     notifyListeners();

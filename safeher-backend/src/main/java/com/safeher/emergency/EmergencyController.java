@@ -20,7 +20,7 @@ public class EmergencyController {
 
     private final EmergencyService emergencyService;
 
-    @PostMapping("/start")
+    @PostMapping({"/start", "/sos/start"})
     public ResponseEntity<ApiResponse<EmergencyEventResponse>> startEmergency(
             @AuthenticationPrincipal User user,
             @Valid @RequestBody EmergencyStartRequest request) {
@@ -29,7 +29,7 @@ public class EmergencyController {
                 .body(ApiResponse.ok(response, "Emergency alert activated successfully"));
     }
 
-    @PostMapping("/{id}/location")
+    @PostMapping({"/{id}/location", "/sos/{id}/location"})
     public ResponseEntity<ApiResponse<Void>> updateLocation(
             @AuthenticationPrincipal User user,
             @PathVariable Long id,
@@ -38,7 +38,7 @@ public class EmergencyController {
         return ResponseEntity.ok(ApiResponse.ok(null, "Location updated successfully"));
     }
 
-    @PostMapping("/{id}/cancel")
+    @PostMapping({"/{id}/cancel", "/sos/{id}/cancel"})
     public ResponseEntity<ApiResponse<EmergencyEventResponse>> cancelEmergency(
             @AuthenticationPrincipal User user,
             @PathVariable Long id,
@@ -47,7 +47,7 @@ public class EmergencyController {
         return ResponseEntity.ok(ApiResponse.ok(response, "Emergency alert cancelled and closed"));
     }
 
-    @GetMapping("/{id}")
+    @GetMapping({"/{id}", "/sos/{id}", "/sos/{id}/status"})
     public ResponseEntity<ApiResponse<EmergencyEventResponse>> getEmergencyStatus(
             @AuthenticationPrincipal User user,
             @PathVariable Long id) {

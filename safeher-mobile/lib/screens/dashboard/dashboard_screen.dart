@@ -46,7 +46,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         onTap: (index) => setState(() => _currentIndex = index),
         type: BottomNavigationBarType.fixed,
         selectedItemColor: AppTheme.brandPrimary,
-        unselectedItemColor: AppTheme.textTertiary,
+        unselectedItemColor: AppTheme.textTertiaryFor(context),
         selectedFontSize: 11.5,
         unselectedFontSize: 11,
         items: const [
@@ -119,7 +119,7 @@ class _DashboardHomeTab extends StatelessWidget {
     final activeCheckIn = checkInProvider.nextActiveCheckIn;
 
     return Scaffold(
-      backgroundColor: AppTheme.backgroundLight,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: Row(
           children: [
@@ -131,7 +131,7 @@ class _DashboardHomeTab extends StatelessWidget {
             ),
             const SizedBox(width: 10),
             const Text(
-              'Svasheild',
+              'SvaShield',
               style: TextStyle(fontWeight: FontWeight.w900, fontSize: 19, letterSpacing: 0.5),
             ),
           ],
@@ -161,17 +161,17 @@ class _DashboardHomeTab extends StatelessWidget {
                   children: [
                     Text(
                       'Hi, ${auth.userName}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w800,
-                        color: AppTheme.textPrimary,
+                        color: Theme.of(context).colorScheme.onSurface,
                         letterSpacing: -0.5,
                       ),
                     ),
                     const SizedBox(height: 2),
-                    const Text(
+                    Text(
                       "Stay safe. We're here when you need us.",
-                      style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                      style: TextStyle(fontSize: 13, color: AppTheme.textSecondaryFor(context)),
                     ),
                   ],
                 ),
@@ -180,10 +180,10 @@ class _DashboardHomeTab extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: AppTheme.safeGreenLight,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppTheme.safeGreen.withOpacity(0.3)),
+                    border: Border.all(color: AppTheme.safeGreen.withValues(alpha: 0.3)),
                   ),
-                  child: Row(
-                    children: const [
+                  child: const Row(
+                    children: [
                       Icon(Icons.check_circle, color: AppTheme.safeGreen, size: 14),
                       SizedBox(width: 5),
                       Text(
@@ -253,7 +253,7 @@ class _DashboardHomeTab extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: AppTheme.brandPrimaryLight,
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: AppTheme.brandPrimary.withOpacity(0.3)),
+                  border: Border.all(color: AppTheme.brandPrimary.withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   children: [
@@ -268,8 +268,8 @@ class _DashboardHomeTab extends StatelessWidget {
                             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.brandPrimaryDark),
                           ),
                           Text(
-                            '${journeyProvider.activeJourney!.remainingDuration.inMinutes} mins remaining until ETA',
-                            style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                              '${journeyProvider.activeJourney!.remainingDuration.inMinutes} mins remaining until ETA',
+                              style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
                           ),
                         ],
                       ),
@@ -283,9 +283,9 @@ class _DashboardHomeTab extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: AppTheme.surfaceWhite,
+                color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : AppTheme.surfaceWhite,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppTheme.borderLight),
+                border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF334155) : AppTheme.borderLight),
               ),
               child: Row(
                 children: [
@@ -293,7 +293,7 @@ class _DashboardHomeTab extends StatelessWidget {
                   const SizedBox(width: 8),
                   const Text('GPS Ready', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600)),
                   const Spacer(),
-                  Container(width: 1, height: 16, color: AppTheme.borderLight),
+                  Container(width: 1, height: 16, color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF334155) : AppTheme.borderLight),
                   const Spacer(),
                   const Icon(Icons.people, color: AppTheme.safeGreen, size: 18),
                   const SizedBox(width: 8),
@@ -302,7 +302,7 @@ class _DashboardHomeTab extends StatelessWidget {
                     style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
                   ),
                   const Spacer(),
-                  Container(width: 1, height: 16, color: AppTheme.borderLight),
+                  Container(width: 1, height: 16, color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF334155) : AppTheme.borderLight),
                   const Spacer(),
                   const Icon(Icons.offline_bolt, color: AppTheme.warningAmber, size: 18),
                   const SizedBox(width: 6),
@@ -322,9 +322,9 @@ class _DashboardHomeTab extends StatelessWidget {
             const SizedBox(height: 36),
 
             // Quick Safety Feature Grid
-            const Text(
+            Text(
               'Quick Safety Actions',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Theme.of(context).colorScheme.onSurface),
             ),
             const SizedBox(height: 12),
 
@@ -384,16 +384,16 @@ class _DashboardHomeTab extends StatelessWidget {
                     child: const Icon(Icons.phone_in_talk, color: AppTheme.emergencyRed, size: 22),
                   ),
                   const SizedBox(width: 14),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Emergency Helpline (112)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                        Text('Direct national women & police emergency dial', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                        const Text('Emergency Helpline (112)', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                        Text('Direct national women & police emergency dial', style: TextStyle(fontSize: 12, color: AppTheme.textSecondaryFor(context))),
                       ],
                     ),
                   ),
-                  const Icon(Icons.chevron_right, color: AppTheme.textTertiary),
+                  Icon(Icons.chevron_right, color: AppTheme.textTertiaryFor(context)),
                 ],
               ),
               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SafetyToolkitScreen())),
@@ -413,41 +413,43 @@ class _DashboardHomeTab extends StatelessWidget {
     String? badge,
     required VoidCallback onTap,
   }) {
-    return SafeCard(
-      padding: const EdgeInsets.all(14),
-      onTap: onTap,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(10),
+    return Builder(
+      builder: (context) => SafeCard(
+        padding: const EdgeInsets.all(14),
+        onTap: onTap,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(icon, color: color, size: 22),
                 ),
-                child: Icon(icon, color: color, size: 22),
-              ),
-              if (badge != null)
-                StatusBadge(label: badge, type: StatusBadgeType.success),
-            ],
-          ),
-          const Spacer(),
-          Text(
-            title,
-            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5, color: AppTheme.textPrimary),
-          ),
-          const SizedBox(height: 1),
-          Text(
-            subtitle,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11.5),
-          ),
-        ],
+                if (badge != null)
+                  StatusBadge(label: badge, type: StatusBadgeType.success),
+              ],
+            ),
+            const Spacer(),
+            Text(
+              title,
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5, color: Theme.of(context).colorScheme.onSurface),
+            ),
+            const SizedBox(height: 1),
+            Text(
+              subtitle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: AppTheme.textSecondaryFor(context), fontSize: 11.5),
+            ),
+          ],
+        ),
       ),
     );
   }

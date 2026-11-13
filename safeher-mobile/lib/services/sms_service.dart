@@ -1,11 +1,9 @@
 import 'package:url_launcher/url_launcher.dart';
 
 class SmsService {
-  /**
-   * Dispatches a device-native carrier SMS directly from the phone.
-   * Solves Blocker 2: Works on Day 1 without waiting for Indian DLT approval,
-   * and functions even when mobile internet is completely disabled.
-   */
+  /// Dispatches a device-native carrier SMS directly from the phone.
+  /// Solves Blocker 2: Works on Day 1 without waiting for Indian DLT approval,
+  /// and functions even when mobile internet is completely disabled.
   static Future<bool> sendNativeEmergencySms({
     required List<String> recipientNumbers,
     required String userName,
@@ -16,7 +14,7 @@ class SmsService {
 
     final String mapsLink = 'https://maps.google.com/?q=$latitude,$longitude';
     final String message = Uri.encodeComponent(
-      'EMERGENCY ALERT: $userName needs immediate assistance! Live Location: $mapsLink - Sent via Svasheild'
+      'EMERGENCY ALERT: $userName needs immediate assistance! Live Location: $mapsLink - Sent via SvaShield'
     );
 
     // On Android, multiple recipients can be comma-separated or sent individually

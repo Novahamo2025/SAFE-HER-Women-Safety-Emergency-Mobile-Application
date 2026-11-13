@@ -47,7 +47,7 @@ class SafeButton extends StatelessWidget {
         break;
       case SafeButtonType.outline:
         bg = Colors.transparent;
-        fg = AppTheme.textPrimary;
+        fg = AppTheme.textPrimaryFor(context);
         border = const BorderSide(color: AppTheme.borderMedium);
         break;
     }
@@ -61,8 +61,8 @@ class SafeButton extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: bg,
           foregroundColor: fg,
-          disabledBackgroundColor: bg.withOpacity(0.5),
-          disabledForegroundColor: fg.withOpacity(0.7),
+          disabledBackgroundColor: bg.withValues(alpha: 0.5),
+          disabledForegroundColor: fg.withValues(alpha: 0.7),
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),

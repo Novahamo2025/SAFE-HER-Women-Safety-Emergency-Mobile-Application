@@ -16,6 +16,7 @@ public class EmergencyEventResponse {
     private String eventType;
     private String status;
     private String clientEventUuid;
+    private String idempotencyKey;
     private Instant startedAt;
     private Instant endedAt;
     private Instant updatedAt;

@@ -30,4 +30,16 @@ class EmergencyEventModel {
   }
 
   bool get isActive => status == 'ACTIVE';
+  bool get isCancelled => status == 'CANCELLED';
+  bool get isResolved => status == 'RESOLVED' || status == 'CANCELLED';
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'eventType': eventType,
+    'status': status,
+    if (clientEventUuid != null) 'clientEventUuid': clientEventUuid,
+    if (startedAt != null) 'startedAt': startedAt!.toIso8601String(),
+    if (endedAt != null) 'endedAt': endedAt!.toIso8601String(),
+    if (cancellationReason != null) 'cancellationReason': cancellationReason,
+  };
 }

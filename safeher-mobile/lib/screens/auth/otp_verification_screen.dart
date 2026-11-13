@@ -1,7 +1,14 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../core/auth/auth_provider.dart';
+import '../../core/storage/local_storage.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/phone_validator.dart';
 import '../../widgets/safe_button.dart';
+import '../dashboard/dashboard_screen.dart';
+import '../onboarding/permission_onboarding_screen.dart';
+import '../onboarding/user_guide_screen.dart';
 import 'pin_setup_screen.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
@@ -24,20 +31,23 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   int _secondsRemaining = 45;
   Timer? _timer;
   bool _isLoading = false;
+  bool _isResending = false;
   String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    _startCountdown();
+    _startCountdown(45);
   }
 
-  void _startCountdown() {
-    _secondsRemaining = 45;
+  void _startCountdown([int seconds = 45]) {
+    _secondsRemaining = seconds > 0 ? seconds : 45;
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_secondsRemaining > 0) {
-        setState(() => _secondsRemaining--);
+        if (mounted) {
+          setState(() => _secondsRemaining--);
+        }
       } else {
         timer.cancel();
       }
@@ -56,9 +66,39 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     super.dispose();
   }
 
-  String get _enteredOtp => _controllers.map((c) => c.text).join();
+  String get _enteredOtp => _controllers.map((c) => c.text.trim()).join();
+
+  void _onOtpChanged(int index, String value) {
+    if (value.length > 1) {
+      // Handle paste or auto-fill containing multiple digits
+      final digits = value.replaceAll(RegExp(r'\D'), '');
+      for (int i = 0; i < 6 && i < digits.length; i++) {
+        _controllers[i].text = digits[i];
+      }
+      if (digits.length >= 6) {
+        _focusNodes[5].unfocus();
+        _handleVerify();
+      } else if (digits.isNotEmpty) {
+        final nextIdx = digits.length < 6 ? digits.length : 5;
+        _focusNodes[nextIdx].requestFocus();
+      }
+      return;
+    }
+
+    if (value.isNotEmpty) {
+      if (index < 5) {
+        _focusNodes[index + 1].requestFocus();
+      } else {
+        _focusNodes[index].unfocus();
+        _handleVerify();
+      }
+    } else if (index > 0) {
+      _focusNodes[index - 1].requestFocus();
+    }
+  }
 
   Future<void> _handleVerify() async {
+    if (_isLoading) return;
     final otp = _enteredOtp;
     if (otp.length < 6) {
       setState(() {
@@ -72,17 +112,74 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       _errorMessage = null;
     });
 
-    await Future.delayed(const Duration(milliseconds: 600));
+    final authProvider = context.read<AuthProvider>();
+    final normalizedPhone = PhoneValidator.normalize(widget.phoneOrEmail);
+    final success = await authProvider.verifyOtp(
+      phone: normalizedPhone,
+      otp: otp,
+    );
 
     if (!mounted) return;
+    setState(() => _isLoading = false);
 
-    // Proceed to Secure PIN setup screen
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (_) => PinSetupScreen(
-          phoneOrEmail: widget.phoneOrEmail,
-          userName: widget.userName,
-        ),
+    if (success) {
+      // Verify user has PIN set or onboarding completed
+      final pin = await LocalStorage.getUserPin();
+      final hasCompletedPerms = await PermissionOnboardingScreen.hasCompleted();
+      final hasCompletedGuide = await UserGuideScreen.hasCompletedGuide();
+      if (!mounted) return;
+
+      if (pin == null || pin.isEmpty) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => PinSetupScreen(
+              phoneOrEmail: widget.phoneOrEmail,
+              userName: widget.userName,
+            ),
+          ),
+        );
+      } else if (!hasCompletedPerms) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const PermissionOnboardingScreen()),
+        );
+      } else if (!hasCompletedGuide) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const UserGuideScreen()),
+        );
+      } else {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const DashboardScreen()),
+        );
+      }
+    } else {
+      setState(() {
+        _errorMessage = authProvider.errorMessage ?? 'Verification failed. Please check the code and try again.';
+      });
+    }
+  }
+
+  Future<void> _handleResend() async {
+    if (_isResending || _secondsRemaining > 0) return;
+
+    setState(() {
+      _isResending = true;
+      _errorMessage = null;
+    });
+
+    final authProvider = context.read<AuthProvider>();
+    final normalizedPhone = PhoneValidator.normalize(widget.phoneOrEmail);
+
+    final result = await authProvider.resendOtp(normalizedPhone);
+
+    if (!mounted) return;
+    setState(() => _isResending = false);
+
+    _startCountdown(result.cooldownSeconds);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(result.message),
+        backgroundColor: result.success ? AppTheme.brandPrimary : AppTheme.warningAmber,
       ),
     );
   }
@@ -92,7 +189,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     return Scaffold(
       backgroundColor: AppTheme.surfaceWhite,
       appBar: AppBar(
-        title: const Text('Verification'),
+        title: const Text('Phone Verification'),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -144,18 +241,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                           borderSide: const BorderSide(color: AppTheme.borderLight),
                         ),
                       ),
-                      onChanged: (value) {
-                        if (value.isNotEmpty) {
-                          if (index < 5) {
-                            _focusNodes[index + 1].requestFocus();
-                          } else {
-                            _focusNodes[index].unfocus();
-                            _handleVerify();
-                          }
-                        } else if (index > 0) {
-                          _focusNodes[index - 1].requestFocus();
-                        }
-                      },
+                      onChanged: (value) => _onOtpChanged(index, value),
                     ),
                   );
                 }),
@@ -164,12 +250,15 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
               if (_errorMessage != null) ...[
                 const SizedBox(height: 12),
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Icon(Icons.error_outline, color: AppTheme.emergencyRed, size: 16),
                     const SizedBox(width: 6),
-                    Text(
-                      _errorMessage!,
-                      style: const TextStyle(color: AppTheme.emergencyRed, fontSize: 13),
+                    Expanded(
+                      child: Text(
+                        _errorMessage!,
+                        style: const TextStyle(color: AppTheme.emergencyRed, fontSize: 13),
+                      ),
                     ),
                   ],
                 ),
@@ -184,16 +273,17 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                         'Resend code in $_secondsRemaining seconds',
                         style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
                       )
-                    : TextButton.icon(
-                        icon: const Icon(Icons.refresh, size: 18),
-                        label: const Text('Resend Code Now'),
-                        onPressed: () {
-                          _startCountdown();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('A new verification code has been dispatched.')),
-                          );
-                        },
-                      ),
+                    : _isResending
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : TextButton.icon(
+                            icon: const Icon(Icons.refresh, size: 18),
+                            label: const Text('Resend Code Now'),
+                            onPressed: _handleResend,
+                          ),
               ),
 
               const SizedBox(height: 36),

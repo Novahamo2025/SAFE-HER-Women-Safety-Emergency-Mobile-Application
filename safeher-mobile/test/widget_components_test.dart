@@ -5,6 +5,7 @@ import 'package:safeher/widgets/status_badge.dart';
 import 'package:safeher/widgets/safe_card.dart';
 import 'package:safeher/widgets/empty_state_widget.dart';
 import 'package:safeher/widgets/permission_card.dart';
+import 'package:safeher/screens/onboarding/user_guide_screen.dart';
 
 void main() {
   testWidgets('SafeButton renders text and triggers callback on tap', (WidgetTester tester) async {
@@ -110,5 +111,18 @@ void main() {
 
     await tester.tap(find.text('Allow'));
     expect(requested, true);
+  });
+
+  testWidgets('User guide shows step count and clear navigation labels', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: UserGuideScreen(),
+      ),
+    );
+
+    expect(find.text('Step 1 of 6'), findsOneWidget);
+    expect(find.text('Previous'), findsOneWidget);
+    expect(find.text('Skip'), findsOneWidget);
+    expect(find.text('Next'), findsOneWidget);
   });
 }

@@ -7,6 +7,7 @@ import com.safeher.incident.dto.IncidentCreateRequest;
 import com.safeher.user.User;
 import com.safeher.user.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +20,7 @@ public class IncidentService {
     private final IncidentRepository incidentRepository;
     private final EmergencyRepository emergencyRepository;
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public List<Incident> getUserIncidents(Long userId) {
         return incidentRepository.findByUserIdOrderByCreatedAtDesc(userId);
@@ -45,5 +47,24 @@ public class IncidentService {
                 .build();
 
         return incidentRepository.save(incident);
+    }
+
+    @Transactional
+    public void deleteIncident(Long userId, Long incidentId, String password) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (password == null || password.isBlank() || !passwordEncoder.matches(password, user.getPasswordHash())) {
+            throw new IllegalArgumentException("Incorrect password. Deletion unauthorized.");
+        }
+
+        Incident incident = incidentRepository.findById(incidentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Incident record not found"));
+
+        if (!incident.getUser().getId().equals(userId)) {
+            throw new IllegalArgumentException("Unauthorized to delete this incident record");
+        }
+
+        incidentRepository.delete(incident);
     }
 }

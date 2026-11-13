@@ -9,7 +9,10 @@ echo User: postgres.pxsizfegyxoqsfgdefvm
 echo ==============================================================================
 
 :: Load from .env if present
-if not defined SUPABASE_DB_PASSWORD call :loadDatabasePassword
+call :loadDatabaseConfig
+
+if not defined SUPABASE_DB_URL set "SUPABASE_DB_URL=jdbc:postgresql://aws-0-ap-northeast-2.pooler.supabase.com:5432/postgres?sslmode=require"
+if not defined SUPABASE_DB_USERNAME set "SUPABASE_DB_USERNAME=postgres.pxsizfegyxoqsfgdefvm"
 
 :: Prompt if still not set
 if not defined SUPABASE_DB_PASSWORD echo.
@@ -38,7 +41,11 @@ echo Please ensure Java 21 and Maven are installed and added to your PATH.
 pause
 goto :eof
 
-:loadDatabasePassword
+:loadDatabaseConfig
 if not exist "%~dp0.env" goto :eof
-for /f "usebackq tokens=1,* delims==" %%A in ("%~dp0.env") do if "%%A"=="SUPABASE_DB_PASSWORD" set "SUPABASE_DB_PASSWORD=%%B"
+for /f "usebackq tokens=1,* delims==" %%A in ("%~dp0.env") do (
+    if "%%A"=="SUPABASE_DB_PASSWORD" if not defined SUPABASE_DB_PASSWORD set "SUPABASE_DB_PASSWORD=%%B"
+    if "%%A"=="SUPABASE_DB_URL" if not defined SUPABASE_DB_URL set "SUPABASE_DB_URL=%%B"
+    if "%%A"=="SUPABASE_DB_USERNAME" if not defined SUPABASE_DB_USERNAME set "SUPABASE_DB_USERNAME=%%B"
+)
 goto :eof

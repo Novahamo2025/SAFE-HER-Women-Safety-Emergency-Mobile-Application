@@ -7,6 +7,7 @@ class PermissionCard extends StatelessWidget {
   final String title;
   final String explanation;
   final bool isGranted;
+  final bool isPermanentlyDenied;
   final VoidCallback onRequest;
 
   const PermissionCard({
@@ -15,18 +16,23 @@ class PermissionCard extends StatelessWidget {
     required this.title,
     required this.explanation,
     required this.isGranted,
+    this.isPermanentlyDenied = false,
     required this.onRequest,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceWhite,
+        color: isDark ? AppTheme.surfaceDark : AppTheme.surfaceWhite,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isGranted ? AppTheme.safeGreen.withOpacity(0.3) : AppTheme.borderLight,
+          color: isGranted
+              ? AppTheme.safeGreen.withValues(alpha: 0.35)
+              : (isDark ? AppTheme.borderDark : AppTheme.borderLight),
         ),
       ),
       child: Column(
@@ -37,12 +43,16 @@ class PermissionCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: isGranted ? AppTheme.safeGreenLight : AppTheme.brandPrimaryLight,
+                  color: isGranted
+                      ? (isDark ? const Color(0xFF064E3B) : AppTheme.safeGreenLight)
+                      : (isDark ? const Color(0xFF1E293B) : AppTheme.brandPrimaryLight),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   icon,
-                  color: isGranted ? AppTheme.safeGreen : AppTheme.brandPrimary,
+                  color: isGranted
+                      ? AppTheme.safeGreen
+                      : (isDark ? const Color(0xFF818CF8) : AppTheme.brandPrimary),
                   size: 22,
                 ),
               ),
@@ -53,16 +63,20 @@ class PermissionCard extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
-                        color: AppTheme.textPrimary,
+                        color: isDark ? AppTheme.textPrimaryDark : AppTheme.textPrimary,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 3),
                     StatusBadge(
-                      label: isGranted ? 'Granted' : 'Action Needed',
-                      type: isGranted ? StatusBadgeType.success : StatusBadgeType.warning,
+                      label: isGranted
+                          ? 'Granted'
+                          : (isPermanentlyDenied ? 'Blocked in OS' : 'Action Needed'),
+                      type: isGranted
+                          ? StatusBadgeType.success
+                          : (isPermanentlyDenied ? StatusBadgeType.error : StatusBadgeType.warning),
                       showDot: true,
                     ),
                   ],
@@ -71,23 +85,26 @@ class PermissionCard extends StatelessWidget {
               if (!isGranted)
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.brandPrimary,
+                    backgroundColor: isPermanentlyDenied ? AppTheme.warningAmber : AppTheme.brandPrimary,
                     foregroundColor: Colors.white,
                     minimumSize: const Size(80, 36),
                     padding: const EdgeInsets.symmetric(horizontal: 14),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                   onPressed: onRequest,
-                  child: const Text('Allow', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                  child: Text(
+                    isPermanentlyDenied ? 'Settings' : 'Allow',
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                  ),
                 ),
             ],
           ),
           const SizedBox(height: 12),
           Text(
             explanation,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
-              color: AppTheme.textSecondary,
+              color: isDark ? AppTheme.textSecondaryDark : AppTheme.textSecondary,
               height: 1.4,
             ),
           ),

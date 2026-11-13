@@ -1,0 +1,11 @@
+target/
+.git/
+.gitignore
+*.log
+hs_err_pid*
+replay_pid*
+.idea/
+*.iml
+.env*
+.mvn/
+mvnw*

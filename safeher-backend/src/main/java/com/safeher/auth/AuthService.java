@@ -3,6 +3,14 @@ package com.safeher.auth;
 import com.safeher.auth.dto.AuthResponse;
 import com.safeher.auth.dto.LoginRequest;
 import com.safeher.auth.dto.RegisterRequest;
+import com.safeher.checkin.CheckInRepository;
+import com.safeher.contact.ContactRepository;
+import com.safeher.emergency.EmergencyEvent;
+import com.safeher.emergency.EmergencyRepository;
+import com.safeher.incident.IncidentRepository;
+import com.safeher.journey.JourneyRepository;
+import com.safeher.location.LocationRepository;
+import com.safeher.notification.NotificationDeliveryRepository;
 import com.safeher.security.JwtTokenProvider;
 import com.safeher.security.RefreshToken;
 import com.safeher.security.RefreshTokenRepository;
@@ -19,6 +27,13 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.HexFormat;
+import com.safeher.auth.dto.OtpSendRequest;
+import com.safeher.notification.SmsGatewayService;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
+import com.safeher.otp.service.OtpService;
 
 @Service
 @Slf4j
@@ -29,9 +44,54 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider tokenProvider;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final ContactRepository contactRepository;
+    private final EmergencyRepository emergencyRepository;
+    private final IncidentRepository incidentRepository;
+    private final JourneyRepository journeyRepository;
+    private final CheckInRepository checkInRepository;
+    private final LocationRepository locationRepository;
+    private final NotificationDeliveryRepository deliveryRepository;
+    private final SmsGatewayService smsGatewayService;
+    private final OtpService otpService;
+
+    public Map<String, Object> sendOtp(OtpSendRequest request) {
+        return sendOtp(request, null);
+    }
+
+    public Map<String, Object> sendOtp(OtpSendRequest request, String clientIp) {
+        if (request == null || request.getPhone() == null || request.getPhone().isBlank()) {
+            throw new IllegalArgumentException("Please enter your mobile number.");
+        }
+
+        String rawPhone = request.getPhone().trim();
+        String normalizedPhone = normalizePhone(rawPhone);
+
+        // Server-side validation: must match valid 10-digit Indian number (+91[6-9]XXXXXXXXX)
+        if (normalizedPhone == null || !normalizedPhone.matches("^\\+91[6-9]\\d{9}$")) {
+            throw new IllegalArgumentException("Please enter a valid 10-digit mobile number.");
+        }
+
+        User user = userRepository.findByPhone(normalizedPhone).orElse(null);
+        return otpService.issueOtp(user, normalizedPhone, OtpService.PURPOSE_REGISTRATION, clientIp);
+    }
+
+    public Map<String, Object> resendOtp(String phone, String clientIp) {
+        String normalizedPhone = normalizePhone(phone);
+        if (normalizedPhone == null || !normalizedPhone.matches("^\\+91[6-9]\\d{9}$")) {
+            throw new IllegalArgumentException("Please enter a valid 10-digit mobile number.");
+        }
+
+        User user = userRepository.findByPhone(normalizedPhone).orElse(null);
+        return otpService.issueOtp(user, normalizedPhone, OtpService.PURPOSE_REGISTRATION, clientIp);
+    }
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
+        return register(request, null);
+    }
+
+    @Transactional
+    public AuthResponse register(RegisterRequest request, String clientIp) {
         String normalizedEmail = request.getEmail().toLowerCase().trim();
         String normalizedPhone = normalizePhone(request.getPhone().trim());
 
@@ -50,14 +110,38 @@ public class AuthService {
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .pinHash(request.getPin() != null ? passwordEncoder.encode(request.getPin()) : null)
                 .role("ROLE_USER")
-                .accountStatus("ACTIVE")
-                .isVerified(true)
+                .accountStatus("PENDING_VERIFICATION")
+                .isVerified(false)
+                .isLegacyAccount(false)
+                .phoneVerifiedAt(null)
                 .build();
 
         User savedUser = userRepository.save(user);
-        log.info("New user registered: id={}", savedUser.getId());
+        log.info("New pending user registered: id={}, phone={}", savedUser.getId(), maskPhone(normalizedPhone));
 
-        return generateAuthResponse(savedUser);
+        // Issue initial registration OTP transactionally with encrypted outbox entry
+        otpService.issueOtp(savedUser, normalizedPhone, OtpService.PURPOSE_REGISTRATION, clientIp);
+
+        // Security requirement: Do NOT issue JWT or refresh tokens before phone verification
+        return AuthResponse.builder()
+                .accessToken(null)
+                .refreshToken(null)
+                .tokenType(null)
+                .userId(savedUser.getId())
+                .name(savedUser.getName())
+                .email(savedUser.getEmail())
+                .phone(savedUser.getPhone())
+                .role(savedUser.getRole())
+                .build();
+    }
+
+    @Transactional
+    public AuthResponse verifyOtp(String phone, String otpCode) {
+        User verifiedUser = otpService.verifyOtp(phone, OtpService.PURPOSE_REGISTRATION, otpCode);
+        if (verifiedUser == null) {
+            throw new IllegalArgumentException("Verification completed but user record not found.");
+        }
+        return generateAuthResponse(verifiedUser);
     }
 
     @Transactional
@@ -67,12 +151,21 @@ public class AuthService {
                 .or(() -> userRepository.findByPhone(normalizePhone(identifier)))
                 .orElseThrow(() -> new IllegalArgumentException("Invalid credentials"));
 
-        if (!"ACTIVE".equals(user.getAccountStatus())) {
-            throw new IllegalArgumentException("Account is not active");
-        }
-
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             throw new IllegalArgumentException("Invalid credentials");
+        }
+
+        // Check verification & legacy eligibility
+        boolean isLegacy = Boolean.TRUE.equals(user.getIsLegacyAccount());
+        boolean isPhoneVerified = user.getPhoneVerifiedAt() != null;
+
+        if (!isLegacy && !isPhoneVerified) {
+            log.warn("Login rejected for unverified non-legacy user: id={}", user.getId());
+            throw new IllegalArgumentException("Account phone number is not verified. Please complete OTP verification.");
+        }
+
+        if (!"ACTIVE".equals(user.getAccountStatus())) {
+            throw new IllegalArgumentException("Account is not active");
         }
 
         // Update last login timestamp
@@ -81,6 +174,31 @@ public class AuthService {
 
         log.info("User logged in: id={}", user.getId());
         return generateAuthResponse(user);
+    }
+
+    public boolean verifyPassword(Long userId, String rawPassword) {
+        if (userId == null || rawPassword == null || rawPassword.isBlank()) {
+            return false;
+        }
+        User user = userRepository.findById(userId).orElse(null);
+        if (user == null || user.getPasswordHash() == null) {
+            return false;
+        }
+        return passwordEncoder.matches(rawPassword, user.getPasswordHash());
+    }
+
+    public boolean verifyPasswordByIdentifier(String identifier, String rawPassword) {
+        if (identifier == null || rawPassword == null || rawPassword.isBlank()) {
+            return false;
+        }
+        String cleanIdentifier = identifier.trim().toLowerCase();
+        User user = userRepository.findByEmailIgnoreCase(cleanIdentifier)
+                .or(() -> userRepository.findByPhone(normalizePhone(identifier.trim())))
+                .orElse(null);
+        if (user == null || user.getPasswordHash() == null) {
+            return false;
+        }
+        return passwordEncoder.matches(rawPassword, user.getPasswordHash());
     }
 
     @Transactional
@@ -121,6 +239,15 @@ public class AuthService {
         User user = userRepository.findById(storedToken.getUserId())
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
+        // Check verification & legacy eligibility
+        boolean isLegacy = Boolean.TRUE.equals(user.getIsLegacyAccount());
+        boolean isPhoneVerified = user.getPhoneVerifiedAt() != null;
+
+        if (!isLegacy && !isPhoneVerified) {
+            log.warn("Token refresh rejected for unverified non-legacy user: id={}", user.getId());
+            throw new IllegalArgumentException("Account phone number is not verified.");
+        }
+
         if (!"ACTIVE".equals(user.getAccountStatus())) {
             throw new IllegalArgumentException("Account is not active");
         }
@@ -141,6 +268,51 @@ public class AuthService {
             refreshTokenRepository.save(token);
             log.info("User logged out: userId={}", token.getUserId());
         });
+    }
+
+    @Transactional
+    public void deleteAccount(Long userId, String rawPassword) {
+        if (userId == null) {
+            throw new IllegalArgumentException("User ID is required for account deletion");
+        }
+        if (rawPassword == null || rawPassword.isBlank()) {
+            throw new IllegalArgumentException("Account password is required for deletion verification");
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        if (!passwordEncoder.matches(rawPassword, user.getPasswordHash())) {
+            throw new IllegalArgumentException("Invalid account password. Deletion verification failed.");
+        }
+
+        log.info("Initiating cascading account deletion for user: id={}, email={}", userId, user.getEmail());
+
+        // 1. Delete emergency events and dependent location updates & notification deliveries
+        List<EmergencyEvent> events = emergencyRepository.findByUserIdOrderByStartedAtDesc(userId);
+        for (EmergencyEvent event : events) {
+            deliveryRepository.deleteAll(deliveryRepository.findByEmergencyEventIdOrderBySentAtDesc(event.getId()));
+            locationRepository.deleteAll(locationRepository.findByEmergencyEventIdOrderByRecordedAtAsc(event.getId()));
+        }
+        emergencyRepository.deleteAll(events);
+
+        // 2. Delete user incidents (evidence records)
+        incidentRepository.deleteAll(incidentRepository.findByUserIdOrderByCreatedAtDesc(userId));
+
+        // 3. Delete emergency contacts
+        contactRepository.deleteAll(contactRepository.findByUserIdOrderByPriorityAsc(userId));
+
+        // 4. Delete journeys and check-ins
+        journeyRepository.deleteAll(journeyRepository.findByUserIdOrderByStartedAtDesc(userId));
+        checkInRepository.deleteAll(checkInRepository.findByUserIdOrderByScheduledTimeDesc(userId));
+
+        // 5. Delete refresh tokens
+        refreshTokenRepository.deleteAllByUserId(userId);
+
+        // 6. Delete user entity
+        userRepository.delete(user);
+
+        log.info("User account and all associated personal safety records successfully deleted for user: id={}", userId);
     }
 
     // --- Private helpers ---
@@ -188,5 +360,12 @@ public class AuthService {
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException("SHA-256 not available", e);
         }
+    }
+
+    private static String maskPhone(String phone) {
+        if (phone == null || phone.length() < 7) {
+            return "***";
+        }
+        return phone.substring(0, 3) + "****" + phone.substring(phone.length() - 3);
     }
 }

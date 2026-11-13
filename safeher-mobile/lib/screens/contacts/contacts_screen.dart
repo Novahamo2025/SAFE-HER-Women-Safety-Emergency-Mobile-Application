@@ -12,6 +12,7 @@ class ContactsScreen extends StatelessWidget {
   const ContactsScreen({super.key});
 
   void _showAddEditContactDialog(BuildContext context, [ContactModel? contact]) {
+    final formKey = GlobalKey<FormState>();
     final nameCtrl = TextEditingController(text: contact?.contactName ?? '');
     final phoneCtrl = TextEditingController(text: contact?.phone ?? '');
     String relationship = contact?.relationship ?? 'Family';
@@ -20,12 +21,12 @@ class ContactsScreen extends StatelessWidget {
     bool notifyPush = contact?.notifyPush ?? true;
 
     final relationships = ['Family', 'Parent', 'Spouse', 'Sibling', 'Friend', 'Colleague', 'Neighbor'];
-    final formKey = GlobalKey<FormState>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppTheme.surfaceWhite,
+      backgroundColor: isDark ? AppTheme.surfaceDark : AppTheme.surfaceWhite,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -49,10 +50,14 @@ class ContactsScreen extends StatelessWidget {
                     children: [
                       Text(
                         contact != null ? 'Edit Trusted Contact' : 'Add Trusted Contact',
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? AppTheme.textPrimaryDark : AppTheme.textPrimary,
+                        ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.close),
+                        icon: Icon(Icons.close, color: isDark ? AppTheme.textSecondaryDark : AppTheme.textSecondary),
                         onPressed: () => Navigator.pop(ctx),
                       ),
                     ],
@@ -60,35 +65,58 @@ class ContactsScreen extends StatelessWidget {
                   const SizedBox(height: 16),
 
                   // Name
-                  const Text('Contact Full Name', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                  Text(
+                    'Contact Full Name',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? AppTheme.textPrimaryDark : AppTheme.textPrimary,
+                    ),
+                  ),
                   const SizedBox(height: 6),
                   TextFormField(
                     controller: nameCtrl,
                     textCapitalization: TextCapitalization.words,
-                    decoration: const InputDecoration(
+                    style: TextStyle(color: isDark ? AppTheme.textPrimaryDark : AppTheme.textPrimary),
+                    decoration: InputDecoration(
                       hintText: 'e.g. Papa, Sarah',
-                      prefixIcon: Icon(Icons.person_outline),
+                      prefixIcon: Icon(Icons.person_outline, color: isDark ? AppTheme.textSecondaryDark : AppTheme.textSecondary),
                     ),
                     validator: (val) => (val == null || val.trim().isEmpty) ? 'Please enter name' : null,
                   ),
                   const SizedBox(height: 16),
 
                   // Phone
-                  const Text('Phone Number (with country code)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                  Text(
+                    'Phone Number (with country code)',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? AppTheme.textPrimaryDark : AppTheme.textPrimary,
+                    ),
+                  ),
                   const SizedBox(height: 6),
                   TextFormField(
                     controller: phoneCtrl,
                     keyboardType: TextInputType.phone,
-                    decoration: const InputDecoration(
+                    style: TextStyle(color: isDark ? AppTheme.textPrimaryDark : AppTheme.textPrimary),
+                    decoration: InputDecoration(
                       hintText: '+91 98765 43210',
-                      prefixIcon: Icon(Icons.phone_outlined),
+                      prefixIcon: Icon(Icons.phone_outlined, color: isDark ? AppTheme.textSecondaryDark : AppTheme.textSecondary),
                     ),
                     validator: (val) => (val == null || val.trim().length < 10) ? 'Enter valid phone number' : null,
                   ),
                   const SizedBox(height: 16),
 
                   // Relationship Picker
-                  const Text('Relationship', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                  Text(
+                    'Relationship',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? AppTheme.textPrimaryDark : AppTheme.textPrimary,
+                    ),
+                  ),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
@@ -98,9 +126,12 @@ class ContactsScreen extends StatelessWidget {
                       return ChoiceChip(
                         label: Text(rel),
                         selected: isSelected,
-                        selectedColor: AppTheme.brandPrimaryLight,
+                        selectedColor: isDark ? const Color(0xFF3730A3) : AppTheme.brandPrimaryLight,
+                        backgroundColor: isDark ? AppTheme.surfaceDarkElevated : AppTheme.surfaceMuted,
                         labelStyle: TextStyle(
-                          color: isSelected ? AppTheme.brandPrimaryDark : AppTheme.textSecondary,
+                          color: isSelected
+                              ? (isDark ? Colors.white : AppTheme.brandPrimaryDark)
+                              : (isDark ? AppTheme.textSecondaryDark : AppTheme.textSecondary),
                           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                           fontSize: 12.5,
                         ),
@@ -115,14 +146,26 @@ class ContactsScreen extends StatelessWidget {
                   // Priority Selector
                   Row(
                     children: [
-                      const Text('Alert Priority:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                      Text(
+                        'Alert Priority:',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? AppTheme.textPrimaryDark : AppTheme.textPrimary,
+                        ),
+                      ),
                       const SizedBox(width: 16),
                       DropdownButton<int>(
                         value: priority,
+                        dropdownColor: isDark ? AppTheme.surfaceDarkElevated : AppTheme.surfaceWhite,
+                        style: TextStyle(color: isDark ? AppTheme.textPrimaryDark : AppTheme.textPrimary, fontSize: 14),
                         items: [1, 2, 3, 4, 5].map((p) {
                           return DropdownMenuItem<int>(
                             value: p,
-                            child: Text('Priority $p ${p == 1 ? "(Primary)" : ""}'),
+                            child: Text(
+                              'Priority $p ${p == 1 ? "(Primary)" : ""}',
+                              style: TextStyle(color: isDark ? AppTheme.textPrimaryDark : AppTheme.textPrimary),
+                            ),
                           );
                         }).toList(),
                         onChanged: (val) {
@@ -136,18 +179,18 @@ class ContactsScreen extends StatelessWidget {
                   // Notification Options
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Send Instant SMS Alert', style: TextStyle(fontSize: 14)),
-                    subtitle: const Text('Direct carrier message with Google Maps GPS link', style: TextStyle(fontSize: 12)),
+                    title: Text('Send Instant SMS Alert', style: TextStyle(fontSize: 14, color: isDark ? AppTheme.textPrimaryDark : AppTheme.textPrimary)),
+                    subtitle: Text('Direct carrier message with Google Maps GPS link', style: TextStyle(fontSize: 12, color: isDark ? AppTheme.textSecondaryDark : AppTheme.textSecondary)),
                     value: notifySms,
-                    activeColor: AppTheme.brandPrimary,
+                    activeThumbColor: isDark ? const Color(0xFF818CF8) : AppTheme.brandPrimary,
                     onChanged: (val) => setSheetState(() => notifySms = val),
                   ),
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Send Push Notification', style: TextStyle(fontSize: 14)),
-                    subtitle: const Text('High-priority alert when app is installed', style: TextStyle(fontSize: 12)),
+                    title: Text('Send Push Notification', style: TextStyle(fontSize: 14, color: isDark ? AppTheme.textPrimaryDark : AppTheme.textPrimary)),
+                    subtitle: Text('High-priority alert when app is installed', style: TextStyle(fontSize: 12, color: isDark ? AppTheme.textSecondaryDark : AppTheme.textSecondary)),
                     value: notifyPush,
-                    activeColor: AppTheme.brandPrimary,
+                    activeThumbColor: isDark ? const Color(0xFF818CF8) : AppTheme.brandPrimary,
                     onChanged: (val) => setSheetState(() => notifyPush = val),
                   ),
                   const SizedBox(height: 24),
@@ -236,9 +279,10 @@ class ContactsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final contactProvider = context.watch<ContactProvider>();
     final contacts = contactProvider.contacts;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: AppTheme.backgroundLight,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Trusted Contacts'),
         actions: [
@@ -262,7 +306,7 @@ class ContactsScreen extends StatelessWidget {
               ? EmptyStateWidget(
                   icon: Icons.people_outline,
                   title: 'No Trusted Contacts Yet',
-                  description: 'Add people you trust so Svasheild can immediately notify them and stream your live GPS location during an emergency.',
+                  description: 'Add people you trust so SvaShield can immediately notify them and stream your live GPS location during an emergency.',
                   buttonText: 'Add First Contact',
                   onButtonPressed: () => _showAddEditContactDialog(context),
                 )
@@ -275,18 +319,24 @@ class ContactsScreen extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: AppTheme.brandPrimaryLight,
+                          color: isDark ? const Color(0xFF1E293B) : AppTheme.brandPrimaryLight,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppTheme.brandPrimary.withOpacity(0.2)),
+                          border: Border.all(
+                            color: isDark ? const Color(0xFF334155) : AppTheme.brandPrimary.withValues(alpha: 0.2),
+                          ),
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.shield_outlined, color: AppTheme.brandPrimary, size: 20),
+                            Icon(Icons.shield_outlined, color: isDark ? const Color(0xFF818CF8) : AppTheme.brandPrimary, size: 20),
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(
                                 '${contacts.length} emergency contacts ready. Priority 1 contacts receive immediate native SMS.',
-                                style: const TextStyle(fontSize: 12.5, color: AppTheme.textPrimary, fontWeight: FontWeight.w500),
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  color: isDark ? AppTheme.textPrimaryDark : AppTheme.textPrimary,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             ),
                           ],
@@ -308,17 +358,17 @@ class ContactsScreen extends StatelessWidget {
                                     Container(
                                       padding: const EdgeInsets.all(12),
                                       decoration: BoxDecoration(
-                                        color: AppTheme.brandPrimaryLight,
+                                        color: isDark ? const Color(0xFF312E81) : AppTheme.brandPrimaryLight,
                                         borderRadius: BorderRadius.circular(14),
                                       ),
                                       child: Text(
                                         contact.contactName.isNotEmpty
                                             ? contact.contactName[0].toUpperCase()
                                             : 'C',
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.w800,
-                                          color: AppTheme.brandPrimary,
+                                          color: isDark ? const Color(0xFFA5B4FC) : AppTheme.brandPrimary,
                                         ),
                                       ),
                                     ),
@@ -332,28 +382,32 @@ class ContactsScreen extends StatelessWidget {
                                               Flexible(
                                                 child: Text(
                                                   contact.contactName,
-                                                  style: const TextStyle(
+                                                  style: TextStyle(
                                                     fontSize: 16,
                                                     fontWeight: FontWeight.w700,
-                                                    color: AppTheme.textPrimary,
+                                                    color: isDark ? AppTheme.textPrimaryDark : AppTheme.textPrimary,
                                                   ),
                                                 ),
                                               ),
                                               const SizedBox(width: 8),
                                               if (contact.isVerified)
-                                                const Icon(Icons.verified, color: AppTheme.brandPrimary, size: 16),
+                                                Icon(Icons.verified, color: isDark ? const Color(0xFF818CF8) : AppTheme.brandPrimary, size: 16),
                                             ],
                                           ),
                                           const SizedBox(height: 2),
                                           Text(
                                             contact.phone,
-                                            style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              color: isDark ? AppTheme.textSecondaryDark : AppTheme.textSecondary,
+                                            ),
                                           ),
                                         ],
                                       ),
                                     ),
                                     PopupMenuButton<String>(
-                                      icon: const Icon(Icons.more_vert, color: AppTheme.textSecondary),
+                                      icon: Icon(Icons.more_vert, color: isDark ? AppTheme.textSecondaryDark : AppTheme.textSecondary),
+                                      color: isDark ? AppTheme.surfaceDarkElevated : AppTheme.surfaceWhite,
                                       onSelected: (action) {
                                         if (action == 'edit') {
                                           _showAddEditContactDialog(context, contact);
@@ -362,7 +416,10 @@ class ContactsScreen extends StatelessWidget {
                                         }
                                       },
                                       itemBuilder: (ctx) => [
-                                        const PopupMenuItem(value: 'edit', child: Text('Edit Contact')),
+                                        PopupMenuItem(
+                                          value: 'edit',
+                                          child: Text('Edit Contact', style: TextStyle(color: isDark ? AppTheme.textPrimaryDark : AppTheme.textPrimary)),
+                                        ),
                                         const PopupMenuItem(
                                           value: 'delete',
                                           child: Text('Remove Contact', style: TextStyle(color: AppTheme.emergencyRed)),
@@ -372,7 +429,7 @@ class ContactsScreen extends StatelessWidget {
                                   ],
                                 ),
                                 const SizedBox(height: 12),
-                                const Divider(),
+                                Divider(color: isDark ? AppTheme.borderDark : AppTheme.borderLight),
                                 const SizedBox(height: 8),
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -395,14 +452,14 @@ class ContactsScreen extends StatelessWidget {
                                     Row(
                                       children: [
                                         if (contact.notifySms)
-                                          const Padding(
-                                            padding: EdgeInsets.only(left: 6),
-                                            child: Icon(Icons.sms_outlined, size: 16, color: AppTheme.brandPrimary),
+                                          Padding(
+                                            padding: const EdgeInsets.only(left: 6),
+                                            child: Icon(Icons.sms_outlined, size: 16, color: isDark ? const Color(0xFF818CF8) : AppTheme.brandPrimary),
                                           ),
                                         if (contact.notifyPush)
-                                          const Padding(
-                                            padding: EdgeInsets.only(left: 6),
-                                            child: Icon(Icons.notifications_active_outlined, size: 16, color: AppTheme.safeGreen),
+                                          Padding(
+                                            padding: const EdgeInsets.only(left: 6),
+                                            child: Icon(Icons.notifications_active_outlined, size: 16, color: isDark ? const Color(0xFF34D399) : AppTheme.safeGreen),
                                           ),
                                       ],
                                     ),

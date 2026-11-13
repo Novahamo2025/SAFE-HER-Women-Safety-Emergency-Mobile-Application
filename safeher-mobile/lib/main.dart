@@ -7,10 +7,13 @@ import 'core/providers/emergency_provider.dart';
 import 'core/providers/journey_provider.dart';
 import 'core/providers/toolkit_provider.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/theme_provider.dart';
+import 'core/services/emergency_foreground_service.dart';
 import 'screens/splash/splash_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  EmergencyForegroundServiceManager.init();
   runApp(const SafeHerApp());
 }
 
@@ -21,6 +24,7 @@ class SafeHerApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => ContactProvider()),
         ChangeNotifierProvider(create: (_) => EmergencyProvider()),
@@ -28,11 +32,17 @@ class SafeHerApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => CheckInProvider()),
         ChangeNotifierProvider(create: (_) => ToolkitProvider()),
       ],
-      child: MaterialApp(
-        title: 'Svasheild',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        home: const SplashScreen(),
+      child: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, child) {
+          return MaterialApp(
+            title: 'SvaShield',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: themeProvider.themeMode,
+            home: const SplashScreen(),
+          );
+        },
       ),
     );
   }

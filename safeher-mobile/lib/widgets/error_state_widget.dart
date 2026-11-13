@@ -27,7 +27,7 @@ class ErrorStateWidget extends StatelessWidget {
           children: [
             Container(
               padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: AppTheme.emergencyLightRed,
                 shape: BoxShape.circle,
               ),
@@ -37,19 +37,19 @@ class ErrorStateWidget extends StatelessWidget {
             Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
-                color: AppTheme.textPrimary,
+                color: AppTheme.textPrimaryFor(context),
               ),
             ),
             const SizedBox(height: 8),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13.5,
-                color: AppTheme.textSecondary,
+                color: AppTheme.textSecondaryFor(context),
                 height: 1.4,
               ),
             ),

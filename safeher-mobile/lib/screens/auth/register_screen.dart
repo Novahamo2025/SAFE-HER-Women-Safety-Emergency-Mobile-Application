@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../../core/auth/auth_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../widgets/safe_button.dart';
+import '../../core/utils/phone_validator.dart';
+import '../../core/utils/password_validator.dart';
 import 'login_screen.dart';
 import 'otp_verification_screen.dart';
 
@@ -39,6 +41,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _handleRegister() async {
+    if (_isLoading) return;
     if (!_formKey.currentState!.validate()) return;
 
     if (!_acceptedTerms) {
@@ -54,10 +57,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() => _isLoading = true);
     final authProvider = context.read<AuthProvider>();
 
-    final success = await authProvider.register(
+    final normalizedPhone = PhoneValidator.normalize(_phoneController.text);
+    final result = await authProvider.register(
       name: _nameController.text.trim(),
       email: _emailController.text.trim(),
-      phone: _phoneController.text.trim(),
+      phone: normalizedPhone,
       password: _passwordController.text,
       pin: _pinController.text.trim().isNotEmpty ? _pinController.text.trim() : null,
     );
@@ -65,16 +69,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!mounted) return;
     setState(() => _isLoading = false);
 
-    if (success) {
-      // Direct user to 6-digit OTP verification flow
+    if (result.success) {
+      // Direct user to 6-digit OTP verification flow with normalized phone
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (_) => OtpVerificationScreen(
-            phoneOrEmail: _phoneController.text.trim().isNotEmpty
-                ? _phoneController.text.trim()
-                : _emailController.text.trim(),
+            phoneOrEmail: normalizedPhone,
             userName: _nameController.text.trim(),
           ),
+        ),
+      );
+    } else {
+      final errorMsg = result.errorMessage ??
+          'Registration failed. Please check your details and try again.';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMsg),
+          backgroundColor: AppTheme.emergencyRed,
         ),
       );
     }
@@ -82,8 +93,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryTextColor = isDark ? AppTheme.textPrimaryDark : AppTheme.textPrimary;
+    final secondaryTextColor = isDark ? AppTheme.textSecondaryDark : AppTheme.textSecondary;
+
     return Scaffold(
-      backgroundColor: AppTheme.surfaceWhite,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Create Account'),
       ),
@@ -95,29 +110,29 @@ class _RegisterScreenState extends State<RegisterScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Join Svasheild',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                Text(
+                  'Join SvaShield',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: primaryTextColor),
                 ),
                 const SizedBox(height: 6),
-                const Text(
+                Text(
                   'Your privacy-first emergency protection and safety network',
-                  style: TextStyle(fontSize: 14, color: AppTheme.textSecondary),
+                  style: TextStyle(fontSize: 14, color: secondaryTextColor),
                 ),
                 const SizedBox(height: 28),
 
                 // Full Name
-                const Text(
+                Text(
                   'Full Name',
-                  style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+                  style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: primaryTextColor),
                 ),
                 const SizedBox(height: 6),
                 TextFormField(
                   controller: _nameController,
                   textCapitalization: TextCapitalization.words,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     hintText: 'e.g. Priya Sharma',
-                    prefixIcon: Icon(Icons.person_outline, color: AppTheme.textSecondary),
+                    prefixIcon: Icon(Icons.person_outline, color: secondaryTextColor),
                   ),
                   validator: (val) {
                     if (val == null || val.trim().isEmpty) return 'Please enter your full name.';
@@ -127,17 +142,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 18),
 
                 // Email Address
-                const Text(
+                Text(
                   'Email Address',
-                  style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+                  style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: primaryTextColor),
                 ),
                 const SizedBox(height: 6),
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     hintText: 'name@example.com',
-                    prefixIcon: Icon(Icons.email_outlined, color: AppTheme.textSecondary),
+                    prefixIcon: Icon(Icons.email_outlined, color: secondaryTextColor),
                   ),
                   validator: (val) {
                     if (val == null || !val.contains('@')) return 'Please enter a valid email address.';
@@ -147,56 +162,52 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 18),
 
                 // Mobile Phone
-                const Text(
+                Text(
                   'Mobile Number (for SMS Alerts)',
-                  style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+                  style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: primaryTextColor),
                 ),
                 const SizedBox(height: 6),
                 TextFormField(
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     hintText: '+91 98765 43210',
-                    prefixIcon: Icon(Icons.phone_outlined, color: AppTheme.textSecondary),
+                    prefixIcon: Icon(Icons.phone_outlined, color: secondaryTextColor),
                   ),
                   validator: (val) {
-                    if (val == null || val.trim().length < 10) return 'Please enter a valid 10-digit mobile number.';
-                    return null;
+                    return PhoneValidator.validate(val);
                   },
                 ),
                 const SizedBox(height: 18),
 
                 // Password
-                const Text(
+                Text(
                   'Account Password',
-                  style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+                  style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: primaryTextColor),
                 ),
                 const SizedBox(height: 6),
                 TextFormField(
                   controller: _passwordController,
                   obscureText: _obscurePassword,
                   decoration: InputDecoration(
-                    hintText: 'At least 8 characters',
-                    prefixIcon: const Icon(Icons.lock_outline, color: AppTheme.textSecondary),
+                    hintText: '8+ chars (A-Z, a-z, 0-9, special char)',
+                    prefixIcon: Icon(Icons.lock_outline, color: secondaryTextColor),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                        color: AppTheme.textSecondary,
+                        color: secondaryTextColor,
                       ),
                       onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                     ),
                   ),
-                  validator: (val) {
-                    if (val == null || val.length < 6) return 'Password must be at least 6 characters.';
-                    return null;
-                  },
+                  validator: PasswordValidator.validate,
                 ),
                 const SizedBox(height: 18),
 
                 // Confirm Password
-                const Text(
+                Text(
                   'Confirm Password',
-                  style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+                  style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: primaryTextColor),
                 ),
                 const SizedBox(height: 6),
                 TextFormField(
@@ -204,11 +215,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   obscureText: _obscureConfirmPassword,
                   decoration: InputDecoration(
                     hintText: 'Repeat password',
-                    prefixIcon: const Icon(Icons.lock_outline, color: AppTheme.textSecondary),
+                    prefixIcon: Icon(Icons.lock_outline, color: secondaryTextColor),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscureConfirmPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                        color: AppTheme.textSecondary,
+                        color: secondaryTextColor,
                       ),
                       onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
                     ),
@@ -234,10 +245,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                     ),
                     const SizedBox(width: 10),
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        'I agree to the Svasheild Privacy Policy and understand that my location is shared only during active emergency workflows.',
-                        style: TextStyle(fontSize: 12.5, color: AppTheme.textSecondary, height: 1.4),
+                        'I agree to the SvaShield Privacy Policy and understand that my location is shared only during active emergency workflows.',
+                        style: TextStyle(fontSize: 12.5, color: secondaryTextColor, height: 1.4),
                       ),
                     ),
                   ],
@@ -256,7 +267,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text('Already have an account?', style: TextStyle(color: AppTheme.textSecondary)),
+                    Text('Already have an account?', style: TextStyle(color: secondaryTextColor)),
                     TextButton(
                       onPressed: () => Navigator.of(context).pushReplacement(
                         MaterialPageRoute(builder: (_) => const LoginScreen()),

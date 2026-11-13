@@ -19,36 +19,67 @@ class StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     Color bg;
     Color fg;
     Color border;
 
-    switch (type) {
-      case StatusBadgeType.success:
-        bg = AppTheme.safeGreenLight;
-        fg = AppTheme.safeGreenDark;
-        border = AppTheme.safeGreen.withOpacity(0.3);
-        break;
-      case StatusBadgeType.error:
-        bg = AppTheme.emergencyLightRed;
-        fg = AppTheme.emergencyDarkRed;
-        border = AppTheme.emergencyRed.withOpacity(0.3);
-        break;
-      case StatusBadgeType.warning:
-        bg = AppTheme.warningLightAmber;
-        fg = AppTheme.warningAmber;
-        border = AppTheme.warningAmber.withOpacity(0.3);
-        break;
-      case StatusBadgeType.info:
-        bg = AppTheme.infoLightBlue;
-        fg = AppTheme.infoBlue;
-        border = AppTheme.infoBlue.withOpacity(0.3);
-        break;
-      case StatusBadgeType.neutral:
-        bg = AppTheme.surfaceMuted;
-        fg = AppTheme.textSecondary;
-        border = AppTheme.borderLight;
-        break;
+    if (isDark) {
+      switch (type) {
+        case StatusBadgeType.success:
+          bg = const Color(0xFF064E3B);
+          fg = const Color(0xFF34D399);
+          border = const Color(0xFF059669).withValues(alpha: 0.5);
+          break;
+        case StatusBadgeType.error:
+          bg = const Color(0xFF450A0A);
+          fg = const Color(0xFFFCA5A5);
+          border = const Color(0xFFDC2626).withValues(alpha: 0.5);
+          break;
+        case StatusBadgeType.warning:
+          bg = const Color(0xFF451A03);
+          fg = const Color(0xFFFCD34D);
+          border = const Color(0xFFD97706).withValues(alpha: 0.5);
+          break;
+        case StatusBadgeType.info:
+          bg = const Color(0xFF172554);
+          fg = const Color(0xFF93C5FD);
+          border = const Color(0xFF2563EB).withValues(alpha: 0.5);
+          break;
+        case StatusBadgeType.neutral:
+          bg = const Color(0xFF334155);
+          fg = const Color(0xFFCBD5E1);
+          border = const Color(0xFF475569);
+          break;
+      }
+    } else {
+      switch (type) {
+        case StatusBadgeType.success:
+          bg = AppTheme.safeGreenLight;
+          fg = AppTheme.safeGreenDark;
+          border = AppTheme.safeGreen.withValues(alpha: 0.3);
+          break;
+        case StatusBadgeType.error:
+          bg = AppTheme.emergencyLightRed;
+          fg = AppTheme.emergencyDarkRed;
+          border = AppTheme.emergencyRed.withValues(alpha: 0.3);
+          break;
+        case StatusBadgeType.warning:
+          bg = AppTheme.warningLightAmber;
+          fg = AppTheme.warningAmber;
+          border = AppTheme.warningAmber.withValues(alpha: 0.3);
+          break;
+        case StatusBadgeType.info:
+          bg = AppTheme.infoLightBlue;
+          fg = AppTheme.infoBlue;
+          border = AppTheme.infoBlue.withValues(alpha: 0.3);
+          break;
+        case StatusBadgeType.neutral:
+          bg = AppTheme.surfaceMuted;
+          fg = AppTheme.textSecondaryFor(context);
+          border = AppTheme.borderLight;
+          break;
+      }
     }
 
     return Container(

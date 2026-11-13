@@ -5,6 +5,8 @@ import '../../core/theme/app_theme.dart';
 import '../../widgets/safe_button.dart';
 import '../../widgets/safe_card.dart';
 import '../auth/login_screen.dart';
+import '../onboarding/user_guide_screen.dart';
+import '../../core/theme/theme_provider.dart';
 import 'privacy_permissions_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -131,11 +133,69 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
+  void _showThemeDialog(BuildContext context, ThemeProvider themeProvider) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Choose App Theme'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            RadioListTile<ThemeMode>(
+              value: ThemeMode.system,
+              groupValue: themeProvider.themeMode,
+              title: const Text('System Default'),
+              subtitle: const Text('Matches device appearance'),
+              secondary: const Icon(Icons.brightness_auto_outlined),
+              onChanged: (mode) {
+                if (mode != null) {
+                  themeProvider.setThemeMode(mode);
+                  Navigator.pop(ctx);
+                }
+              },
+            ),
+            RadioListTile<ThemeMode>(
+              value: ThemeMode.light,
+              groupValue: themeProvider.themeMode,
+              title: const Text('Light Theme'),
+              subtitle: const Text('Clean, bright display'),
+              secondary: const Icon(Icons.light_mode_outlined),
+              onChanged: (mode) {
+                if (mode != null) {
+                  themeProvider.setThemeMode(mode);
+                  Navigator.pop(ctx);
+                }
+              },
+            ),
+            RadioListTile<ThemeMode>(
+              value: ThemeMode.dark,
+              groupValue: themeProvider.themeMode,
+              title: const Text('Dark Theme'),
+              subtitle: const Text('Dark slate, battery efficient'),
+              secondary: const Icon(Icons.dark_mode_outlined),
+              onChanged: (mode) {
+                if (mode != null) {
+                  themeProvider.setThemeMode(mode);
+                  Navigator.pop(ctx);
+                }
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+        ],
+      ),
+    );
+  }
+
   void _showInfoModal(BuildContext context, String title, String content) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppTheme.surfaceWhite,
+      backgroundColor: isDark ? AppTheme.surfaceDark : AppTheme.surfaceWhite,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -149,12 +209,29 @@ class ProfileScreen extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
-                  IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? AppTheme.textPrimaryDark : AppTheme.textPrimary,
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.close, color: isDark ? AppTheme.textSecondaryDark : AppTheme.textSecondary),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
                 ],
               ),
               const SizedBox(height: 16),
-              Text(content, style: const TextStyle(fontSize: 13.5, color: AppTheme.textSecondary, height: 1.5)),
+              Text(
+                content,
+                style: TextStyle(
+                  fontSize: 13.5,
+                  color: isDark ? AppTheme.textSecondaryDark : AppTheme.textSecondary,
+                  height: 1.5,
+                ),
+              ),
               const SizedBox(height: 24),
               SafeButton(text: 'Understood', onPressed: () => Navigator.pop(ctx)),
             ],
@@ -167,9 +244,10 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: AppTheme.backgroundLight,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Profile & Settings'),
       ),
@@ -185,8 +263,8 @@ class ProfileScreen extends StatelessWidget {
                   Container(
                     width: 56,
                     height: 56,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
                         colors: [AppTheme.brandPrimary, AppTheme.brandPrimaryDark],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
@@ -207,11 +285,27 @@ class ProfileScreen extends StatelessWidget {
                       children: [
                         Text(
                           auth.userName,
-                          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? AppTheme.textPrimaryDark : AppTheme.textPrimary,
+                          ),
                         ),
                         const SizedBox(height: 2),
-                        Text(auth.userEmail, style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
-                        Text(auth.userPhone, style: const TextStyle(fontSize: 12.5, color: AppTheme.textTertiary)),
+                        Text(
+                          auth.userEmail,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: isDark ? AppTheme.textSecondaryDark : AppTheme.textSecondary,
+                          ),
+                        ),
+                        Text(
+                          auth.userPhone,
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            color: isDark ? AppTheme.textTertiaryDark : AppTheme.textTertiary,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -225,9 +319,9 @@ class ProfileScreen extends StatelessWidget {
             const SizedBox(height: 24),
 
             // Security & PIN Section
-            const Text(
+            Text(
               'Security & Access',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
             ),
             const SizedBox(height: 10),
 
@@ -254,10 +348,75 @@ class ProfileScreen extends StatelessWidget {
             ),
             const SizedBox(height: 24),
 
+            // Appearance & Customization Section
+            Text(
+              'Appearance & Experience',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
+            ),
+            const SizedBox(height: 10),
+
+            Consumer<ThemeProvider>(
+              builder: (context, themeProvider, _) {
+                String themeSubtitle = 'System Default';
+                IconData themeIcon = Icons.brightness_auto_outlined;
+                if (themeProvider.themeMode == ThemeMode.light) {
+                  themeSubtitle = 'Light Theme Active';
+                  themeIcon = Icons.light_mode_outlined;
+                } else if (themeProvider.themeMode == ThemeMode.dark) {
+                  themeSubtitle = 'Dark Theme Active';
+                  themeIcon = Icons.dark_mode_outlined;
+                }
+
+                return SafeCard(
+                  child: Column(
+                    children: [
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF8B5CF6).withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(themeIcon, color: const Color(0xFF8B5CF6), size: 20),
+                        ),
+                        title: const Text('App Theme & Display', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                        subtitle: Text(themeSubtitle, style: const TextStyle(fontSize: 12)),
+                        trailing: const Icon(Icons.chevron_right, color: AppTheme.textTertiary),
+                        onTap: () => _showThemeDialog(context, themeProvider),
+                      ),
+                      const Divider(),
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppTheme.infoLightBlue,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.menu_book_outlined, color: AppTheme.infoBlue, size: 20),
+                        ),
+                        title: const Text('Interactive User Guide', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                        subtitle: const Text('Walkthrough of SOS, safety tools & features', style: TextStyle(fontSize: 12)),
+                        trailing: const Icon(Icons.chevron_right, color: AppTheme.textTertiary),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const UserGuideScreen(isReviewMode: true),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 24),
+
             // Privacy & Permissions Section
-            const Text(
+            Text(
               'Privacy & Transparency',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
             ),
             const SizedBox(height: 10),
 
@@ -288,9 +447,9 @@ class ProfileScreen extends StatelessWidget {
             const SizedBox(height: 24),
 
             // Legal & Disclaimers
-            const Text(
+            Text(
               'About & Legal',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
             ),
             const SizedBox(height: 10),
 
@@ -300,13 +459,13 @@ class ProfileScreen extends StatelessWidget {
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     leading: const Icon(Icons.info_outline, color: AppTheme.textSecondary, size: 20),
-                    title: const Text('About Svasheild', style: TextStyle(fontSize: 14)),
+                    title: const Text('About SvaShield', style: TextStyle(fontSize: 14)),
                     subtitle: const Text('Version 1.0.0 • Production Build', style: TextStyle(fontSize: 12)),
                     trailing: const Icon(Icons.chevron_right, color: AppTheme.textTertiary),
                     onTap: () => _showInfoModal(
                       context,
-                      'About Svasheild',
-                      'Svasheild is a comprehensive women safety, emergency SOS, live location, safe journey, and trusted contact management system engineered for high-stress reliability and privacy-first data protection.',
+                      'About SvaShield',
+                      'SvaShield is a comprehensive women safety, emergency SOS, live location, safe journey, and trusted contact management system engineered for high-stress reliability and privacy-first data protection.',
                     ),
                   ),
                   const Divider(),
@@ -318,7 +477,7 @@ class ProfileScreen extends StatelessWidget {
                     onTap: () => _showInfoModal(
                       context,
                       'Emergency Disclaimer',
-                      'Svasheild is a safety companion tool that alerts designated trusted emergency contacts and facilitates location broadcasting. In life-threatening emergencies, always dial national emergency numbers (112 / 100 / 1091) whenever feasible.',
+                      'SvaShield is a safety companion tool that alerts designated trusted emergency contacts and facilitates location broadcasting. In life-threatening emergencies, always dial national emergency numbers (112 / 100 / 1091) whenever feasible.',
                     ),
                   ),
                   const Divider(),
@@ -330,7 +489,7 @@ class ProfileScreen extends StatelessWidget {
                     onTap: () => _showInfoModal(
                       context,
                       'Privacy Policy Summary',
-                      'Svasheild does not track your location continuously in the background. GPS coordinates are collected and broadcast only during active SOS alerts or monitored Safe Walk sessions, with a strict 7-day retention limit.',
+                      'SvaShield does not track your location continuously in the background. GPS coordinates are collected and broadcast only during active SOS alerts or monitored Safe Walk sessions, with a strict 7-day retention limit.',
                     ),
                   ),
                 ],
@@ -340,7 +499,7 @@ class ProfileScreen extends StatelessWidget {
 
             // Logout Button
             SafeButton(
-              text: 'Log Out of Svasheild',
+              text: 'Log Out of SvaShield',
               icon: Icons.logout,
               type: SafeButtonType.outline,
               onPressed: () async {

@@ -1,5 +1,7 @@
 package com.safeher.common;
 
+import com.safeher.otp.exception.OtpCooldownException;
+import com.safeher.otp.exception.OtpRateLimitException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +16,28 @@ import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(OtpCooldownException.class)
+    public ResponseEntity<ApiResponse<Map<String, Object>>> handleOtpCooldown(OtpCooldownException ex) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header("Retry-After", String.valueOf(ex.getRetryAfterSeconds()))
+                .body(ApiResponse.<Map<String, Object>>builder()
+                        .success(false)
+                        .message(ex.getMessage())
+                        .data(Map.of("retryAfterSeconds", ex.getRetryAfterSeconds()))
+                        .build());
+    }
+
+    @ExceptionHandler(OtpRateLimitException.class)
+    public ResponseEntity<ApiResponse<Map<String, Object>>> handleOtpRateLimit(OtpRateLimitException ex) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header("Retry-After", "3600")
+                .body(ApiResponse.<Map<String, Object>>builder()
+                        .success(false)
+                        .message(ex.getMessage())
+                        .data(Map.of("retryAfterSeconds", 3600))
+                        .build());
+    }
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ApiResponse<Void>> handleNotFound(ResourceNotFoundException ex) {

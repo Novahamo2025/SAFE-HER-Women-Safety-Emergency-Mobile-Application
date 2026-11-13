@@ -24,6 +24,7 @@ class _SosHoldButtonState extends State<SosHoldButton> with SingleTickerProvider
   Timer? _holdTimer;
   double _holdProgress = 0.0;
   bool _isHolding = false;
+  bool _isTriggering = false;
   static const int _holdDurationMs = 3000;
   static const int _stepMs = 40;
 
@@ -51,6 +52,7 @@ class _SosHoldButtonState extends State<SosHoldButton> with SingleTickerProvider
   }
 
   void _onPressDown() {
+    if (_isTriggering) return;
     setState(() {
       _isHolding = true;
       _holdProgress = 0.0;
@@ -58,10 +60,10 @@ class _SosHoldButtonState extends State<SosHoldButton> with SingleTickerProvider
 
     HapticFeedback.heavyImpact();
 
-    final totalSteps = _holdDurationMs / _stepMs;
+    const totalSteps = _holdDurationMs / _stepMs;
     int currentStep = 0;
 
-    _holdTimer = Timer.periodic(Duration(milliseconds: _stepMs), (timer) {
+    _holdTimer = Timer.periodic(const Duration(milliseconds: _stepMs), (timer) {
       currentStep++;
       final progress = (currentStep / totalSteps).clamp(0.0, 1.0);
       setState(() {
@@ -80,6 +82,7 @@ class _SosHoldButtonState extends State<SosHoldButton> with SingleTickerProvider
   }
 
   void _onPressUp() {
+    if (_isTriggering) return;
     _holdTimer?.cancel();
     setState(() {
       _isHolding = false;
@@ -88,18 +91,34 @@ class _SosHoldButtonState extends State<SosHoldButton> with SingleTickerProvider
   }
 
   Future<void> _executeTrigger() async {
+    if (_isTriggering) return;
+    setState(() {
+      _isTriggering = true;
+    });
+
     try {
       await VibrationService.vibratePattern();
     } catch (_) {}
 
-    widget.onSosTriggered();
+    try {
+      await widget.onSosTriggered();
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isHolding = false;
+          _holdProgress = 0.0;
+          _isTriggering = false;
+        });
+      }
+    }
   }
 
   String get _instructionText {
+    if (_isTriggering) return 'ACTIVATING SOS...';
     if (!_isHolding) return 'HOLD 3 SECONDS';
     if (_holdProgress < 0.4) return 'KEEP HOLDING...';
     if (_holdProgress < 0.85) return 'RELEASING CANCELS';
-    return 'ACTIVATING SOS!';
+    return 'ACTIVATING SOS...';
   }
 
   @override
@@ -128,7 +147,7 @@ class _SosHoldButtonState extends State<SosHoldButton> with SingleTickerProvider
                     height: widget.size + 16,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: primaryColor.withOpacity(_isHolding ? 0.25 : 0.1),
+                      color: primaryColor.withValues(alpha: _isHolding ? 0.25 : 0.1),
                     ),
                   ),
 
@@ -139,7 +158,7 @@ class _SosHoldButtonState extends State<SosHoldButton> with SingleTickerProvider
                     child: CircularProgressIndicator(
                       value: _holdProgress,
                       strokeWidth: 8,
-                      backgroundColor: primaryColor.withOpacity(0.18),
+                      backgroundColor: primaryColor.withValues(alpha: 0.18),
                       valueColor: AlwaysStoppedAnimation<Color>(darkColor),
                     ),
                   ),
@@ -160,7 +179,7 @@ class _SosHoldButtonState extends State<SosHoldButton> with SingleTickerProvider
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: primaryColor.withOpacity(_isHolding ? 0.55 : 0.35),
+                          color: primaryColor.withValues(alpha: _isHolding ? 0.55 : 0.35),
                           blurRadius: _isHolding ? 28 : 16,
                           spreadRadius: _isHolding ? 6 : 2,
                           offset: const Offset(0, 4),
@@ -189,7 +208,7 @@ class _SosHoldButtonState extends State<SosHoldButton> with SingleTickerProvider
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                           decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.25),
+                            color: Colors.black.withValues(alpha: 0.25),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(

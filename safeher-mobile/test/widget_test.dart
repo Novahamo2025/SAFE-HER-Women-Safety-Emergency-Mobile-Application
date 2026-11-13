@@ -8,10 +8,12 @@ import 'package:safeher/core/providers/journey_provider.dart';
 import 'package:safeher/core/providers/checkin_provider.dart';
 import 'package:safeher/core/providers/toolkit_provider.dart';
 import 'package:safeher/core/theme/app_theme.dart';
+import 'package:safeher/core/theme/theme_provider.dart';
 import 'package:safeher/screens/dashboard/dashboard_screen.dart';
 
 void main() {
   testWidgets('DashboardScreen smoke test - verifies core safety controls', (WidgetTester tester) async {
+    final themeProv = ThemeProvider();
     final checkinProv = CheckInProvider();
     final journeyProv = JourneyProvider();
     final emergencyProv = EmergencyProvider();
@@ -22,6 +24,7 @@ void main() {
     await tester.pumpWidget(
       MultiProvider(
         providers: [
+          ChangeNotifierProvider.value(value: themeProv),
           ChangeNotifierProvider.value(value: authProv),
           ChangeNotifierProvider.value(value: contactProv),
           ChangeNotifierProvider.value(value: emergencyProv),
@@ -39,7 +42,7 @@ void main() {
     // Allow async providers to settle
     await tester.pump(const Duration(seconds: 1));
 
-    expect(find.text('Svasheild'), findsOneWidget);
+    expect(find.text('SvaShield'), findsOneWidget);
     expect(find.text('SOS'), findsOneWidget);
     expect(find.text('Safe Walk'), findsOneWidget);
     expect(find.text('Safety Check-In'), findsOneWidget);
@@ -48,5 +51,6 @@ void main() {
     checkinProv.dispose();
     journeyProv.dispose();
     emergencyProv.dispose();
+    themeProv.dispose();
   });
 }

@@ -53,4 +53,68 @@ class AuthApiService {
       data: {'refreshToken': refreshToken},
     );
   }
+
+  Future<bool> verifyPassword(String password) async {
+    try {
+      final response = await _dio.post(
+        ApiConstants.verifyPassword,
+        data: {'password': password},
+      );
+      if (response.statusCode == 200) {
+        final data = response.data;
+        if (data is Map<String, dynamic>) {
+          return data['data'] == true;
+        }
+      }
+      return false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> deleteAccount(String password) async {
+    try {
+      final response = await _dio.delete(
+        ApiConstants.deleteAccount,
+        data: {'password': password},
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<Map<String, dynamic>> sendOtp(String phone) async {
+    final response = await _dio.post(
+      ApiConstants.sendOtp,
+      data: {'phone': phone},
+    );
+    return response.data as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> verifyOtp({
+    required String phone,
+    required String otp,
+  }) async {
+    final response = await _dio.post(
+      ApiConstants.verifyOtp,
+      data: {
+        'phone': phone,
+        'otp': otp,
+      },
+    );
+    return response.data as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> resendOtp({
+    required String phone,
+  }) async {
+    final response = await _dio.post(
+      ApiConstants.resendOtp,
+      data: {
+        'phone': phone,
+      },
+    );
+    return response.data as Map<String, dynamic>;
+  }
 }

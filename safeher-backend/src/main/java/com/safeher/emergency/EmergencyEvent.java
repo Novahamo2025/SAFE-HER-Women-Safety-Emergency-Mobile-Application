@@ -37,6 +37,9 @@ public class EmergencyEvent {
     @Column(name = "client_event_uuid", unique = true, length = 100)
     private String clientEventUuid;
 
+    @Column(name = "idempotency_key", length = 100)
+    private String idempotencyKey;
+
     @CreationTimestamp
     @Column(name = "started_at", nullable = false, updatable = false)
     private Instant startedAt;

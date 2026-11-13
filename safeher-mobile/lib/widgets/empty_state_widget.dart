@@ -29,7 +29,7 @@ class EmptyStateWidget extends StatelessWidget {
           children: [
             Container(
               padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: AppTheme.brandPrimaryLight,
                 shape: BoxShape.circle,
               ),
@@ -39,19 +39,19 @@ class EmptyStateWidget extends StatelessWidget {
             Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: AppTheme.textPrimary,
+                color: AppTheme.textPrimaryFor(context),
               ),
             ),
             const SizedBox(height: 8),
             Text(
               description,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
-                color: AppTheme.textSecondary,
+                color: AppTheme.textSecondaryFor(context),
                 height: 1.4,
               ),
             ),

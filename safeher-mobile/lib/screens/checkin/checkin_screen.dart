@@ -25,7 +25,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppTheme.surfaceWhite,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -44,9 +44,9 @@ class _CheckInScreenState extends State<CheckInScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Schedule Safety Check-In',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimaryFor(ctx)),
                   ),
                   IconButton(
                     icon: const Icon(Icons.close),
@@ -55,9 +55,9 @@ class _CheckInScreenState extends State<CheckInScreen> {
                 ],
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Svasheild will ask you to confirm your safety at the chosen interval. If missed, selected contacts receive a reminder.',
-                style: TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.4),
+              Text(
+                'SvaShield will ask you to confirm your safety at the chosen interval. If missed, selected contacts receive a reminder.',
+                style: TextStyle(fontSize: 13, color: AppTheme.textSecondaryFor(ctx), height: 1.4),
               ),
               const SizedBox(height: 20),
 
@@ -73,7 +73,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
                     selected: isSelected,
                     selectedColor: AppTheme.brandPrimaryLight,
                     labelStyle: TextStyle(
-                      color: isSelected ? AppTheme.brandPrimaryDark : AppTheme.textSecondary,
+                      color: isSelected ? AppTheme.brandPrimaryDark : AppTheme.textSecondaryFor(ctx),
                       fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                     ),
                     onSelected: (selected) {
@@ -134,9 +134,9 @@ class _CheckInScreenState extends State<CheckInScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'You missed your scheduled check-in. Please confirm you are safe right now:',
-              style: TextStyle(fontSize: 13.5, color: AppTheme.textSecondary),
+              style: TextStyle(fontSize: 13.5, color: AppTheme.textSecondaryFor(ctx)),
             ),
             const SizedBox(height: 12),
             Container(
@@ -183,7 +183,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
     final allCheckIns = provider.checkIns;
 
     return Scaffold(
-      backgroundColor: AppTheme.backgroundLight,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Safety Check-In'),
       ),
@@ -202,8 +202,10 @@ class _CheckInScreenState extends State<CheckInScreen> {
             // Active Check-In Card
             if (activeCheckIn != null) ...[
               SafeCard(
-                borderColor: AppTheme.safeGreen.withOpacity(0.4),
-                backgroundColor: AppTheme.safeGreenLight.withOpacity(0.5),
+                borderColor: AppTheme.safeGreen.withValues(alpha: 0.4),
+                backgroundColor: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF064E3B)
+                    : AppTheme.safeGreenLight.withValues(alpha: 0.5),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -239,12 +241,12 @@ class _CheckInScreenState extends State<CheckInScreen> {
                             children: [
                               Text(
                                 activeCheckIn.note.isNotEmpty ? activeCheckIn.note : 'Scheduled Check-In',
-                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimaryFor(context)),
                               ),
                               const SizedBox(height: 2),
                               Text(
                                 '${activeCheckIn.remainingDuration.inMinutes} mins remaining until check-in',
-                                style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                                style: TextStyle(fontSize: 13, color: AppTheme.textSecondaryFor(context)),
                               ),
                             ],
                           ),
@@ -286,12 +288,12 @@ class _CheckInScreenState extends State<CheckInScreen> {
                           child: const Icon(Icons.alarm_add_outlined, color: AppTheme.brandPrimary, size: 24),
                         ),
                         const SizedBox(width: 12),
-                        const Expanded(
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('No Active Check-In Timer', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                              Text('Set a timer to regularly verify your safety', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                              const Text('No Active Check-In Timer', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                              Text('Set a timer to regularly verify your safety', style: TextStyle(fontSize: 12, color: AppTheme.textSecondaryFor(context))),
                             ],
                           ),
                         ),
@@ -311,9 +313,9 @@ class _CheckInScreenState extends State<CheckInScreen> {
             ],
 
             // History Section
-            const Text(
+            Text(
               'Check-In History',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimaryFor(context)),
             ),
             const SizedBox(height: 10),
 
@@ -349,7 +351,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
                             ci.isConfirmedSafe ? Icons.check : (ci.isMissed ? Icons.warning : Icons.schedule),
                             color: ci.isConfirmedSafe
                                 ? AppTheme.safeGreen
-                                : (ci.isMissed ? AppTheme.warningAmber : AppTheme.textSecondary),
+                                : (ci.isMissed ? AppTheme.warningAmber : AppTheme.textSecondaryFor(context)),
                             size: 18,
                           ),
                         ),
@@ -361,7 +363,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
                               Text(ci.note, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                               Text(
                                 '${ci.intervalMinutes}m timer • ${ci.scheduledTime.hour.toString().padLeft(2, '0')}:${ci.scheduledTime.minute.toString().padLeft(2, '0')}',
-                                style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                                style: TextStyle(fontSize: 12, color: AppTheme.textSecondaryFor(context)),
                               ),
                             ],
                           ),

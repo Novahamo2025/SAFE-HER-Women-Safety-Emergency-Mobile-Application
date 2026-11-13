@@ -1,9 +1,13 @@
 server:
-  port: 8081
+  address: 0.0.0.0
+  port: ${PORT:8081}
+  shutdown: graceful
   servlet:
     context-path: /
 
 spring:
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
   datasource:
     url: ${SUPABASE_DB_URL:jdbc:postgresql://aws-0-ap-northeast-2.pooler.supabase.com:5432/postgres?sslmode=require}
     username: ${SUPABASE_DB_USERNAME:postgres.pxsizfegyxoqsfgdefvm}
@@ -26,6 +30,8 @@ spring:
 
 # SafeHer Security and Token Parameters
 app:
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000}
   jwt:
     secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
     access-token-expiration-ms: ${JWT_ACCESS_EXPIRY_MS:900000}
@@ -48,6 +54,29 @@ app:
   # Contact limits
   contacts:
     max-per-user: ${MAX_CONTACTS_PER_USER:10}
+
+  # SMS Outbox Dispatcher
+  outbox:
+    enabled: ${OUTBOX_ENABLED:true}
+    batch-size: ${OUTBOX_BATCH_SIZE:10}
+    poll-interval-ms: ${OUTBOX_POLL_INTERVAL_MS:5000}
+    recovery-interval-ms: ${OUTBOX_RECOVERY_INTERVAL_MS:60000}
+    lease-duration-seconds: ${OUTBOX_LEASE_SECONDS:120}
+
+  # OTP & SMS Outbox Cryptographic Services (HMAC-SHA256 Pepper & AES-256-GCM)
+  crypto:
+    otp-pepper-key: ${OTP_PEPPER_KEY:}
+    otp-pepper-version: ${OTP_PEPPER_VERSION:v1}
+    sms-encryption-key-v1: ${SMS_ENCRYPTION_KEY_V1:}
+    sms-encryption-key-version: ${SMS_ENCRYPTION_KEY_VERSION:v1}
+    validate-on-startup: ${CRYPTO_VALIDATE_ON_STARTUP:false}
+
+  # MSG91 SendOTP Webhook Configuration
+  webhook:
+    msg91:
+      secret-header-name: ${MSG91_WEBHOOK_HEADER_NAME:X-SvaShield-Webhook-Secret}
+      secret-header-value: ${MSG91_WEBHOOK_SECRET:}
+      url-token: ${MSG91_WEBHOOK_URL_TOKEN:}
 
 # Logging configuration
 logging:

@@ -3,10 +3,8 @@ import 'package:flutter/services.dart';
 class BatteryService {
   static const MethodChannel _channel = MethodChannel('com.safeher.app/battery');
 
-  /**
-   * Solves Blocker 3: Detects OEM battery management (Xiaomi, Vivo, Oppo, OnePlus)
-   * and deep-links the user to the device's battery exemption settings.
-   */
+  /// Solves Blocker 3: Detects OEM battery management (Xiaomi, Vivo, Oppo, OnePlus)
+  /// and deep-links the user to the device's battery exemption settings.
   static Future<bool> isBatteryOptimizationDisabled() async {
     try {
       final bool? isIgnored = await _channel.invokeMethod<bool>('isBatteryOptimizationDisabled');

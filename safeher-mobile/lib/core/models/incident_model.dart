@@ -5,6 +5,7 @@ class IncidentModel {
   final DateTime timestamp;
   final String? audioPath;
   final String? photoPath;
+  final String? videoPath;
   final double? latitude;
   final double? longitude;
   final bool isEncryptedLocally;
@@ -17,6 +18,7 @@ class IncidentModel {
     required this.timestamp,
     this.audioPath,
     this.photoPath,
+    this.videoPath,
     this.latitude,
     this.longitude,
     this.isEncryptedLocally = true,
@@ -33,6 +35,7 @@ class IncidentModel {
           : DateTime.now(),
       audioPath: json['audioPath'] as String?,
       photoPath: json['photoPath'] as String?,
+      videoPath: json['videoPath'] as String?,
       latitude: (json['latitude'] as num?)?.toDouble(),
       longitude: (json['longitude'] as num?)?.toDouble(),
       isEncryptedLocally: json['isEncryptedLocally'] as bool? ?? true,
@@ -48,6 +51,7 @@ class IncidentModel {
       'timestamp': timestamp.toIso8601String(),
       'audioPath': audioPath,
       'photoPath': photoPath,
+      'videoPath': videoPath,
       'latitude': latitude,
       'longitude': longitude,
       'isEncryptedLocally': isEncryptedLocally,

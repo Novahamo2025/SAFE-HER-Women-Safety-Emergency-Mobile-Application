@@ -1,12 +1,21 @@
 class ApiConstants {
-  // Use 10.0.2.2 for Android Emulator, or your local machine IP (e.g. 192.168.1.X) for physical devices
-  static const String baseUrl = 'http://10.0.2.2:8081/api';
+  // Backend API URL: configurable via --dart-define=BACKEND_URL=https://...
+  // Default fallback for physical Android development via adb reverse: http://127.0.0.1:8081/api
+  static const String baseUrl = String.fromEnvironment(
+    'BACKEND_URL',
+    defaultValue: 'http://127.0.0.1:8081/api',
+  );
 
   // Auth endpoints
   static const String register = '$baseUrl/auth/register';
   static const String login = '$baseUrl/auth/login';
   static const String refreshToken = '$baseUrl/auth/refresh';
   static const String logout = '$baseUrl/auth/logout';
+  static const String verifyPassword = '$baseUrl/auth/verify-password';
+  static const String deleteAccount = '$baseUrl/auth/account';
+  static const String sendOtp = '$baseUrl/auth/otp/send';
+  static const String verifyOtp = '$baseUrl/auth/otp/verify';
+  static const String resendOtp = '$baseUrl/auth/otp/resend';
 
   // Emergency endpoints
   static const String emergencyStart = '$baseUrl/emergency/start';

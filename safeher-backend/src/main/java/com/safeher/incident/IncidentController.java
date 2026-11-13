@@ -33,4 +33,19 @@ public class IncidentController {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.ok(incident, "Incident record stored securely"));
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteIncident(
+            @AuthenticationPrincipal User user,
+            @PathVariable Long id,
+            @RequestParam(required = false) String password,
+            @RequestBody(required = false) java.util.Map<String, String> body) {
+        String pwd = (password != null && !password.isBlank()) ? password : (body != null ? body.get("password") : null);
+        if (pwd == null || pwd.isBlank()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error("Password is required to delete incident evidence"));
+        }
+        incidentService.deleteIncident(user.getId(), id, pwd);
+        return ResponseEntity.ok(ApiResponse.ok(null, "Incident record securely deleted"));
+    }
 }

@@ -6,6 +6,9 @@ import '../../widgets/safe_button.dart';
 import '../dashboard/dashboard_screen.dart';
 import 'otp_verification_screen.dart';
 import 'register_screen.dart';
+import '../../core/utils/phone_validator.dart';
+import '../onboarding/permission_onboarding_screen.dart';
+import '../onboarding/user_guide_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -16,19 +19,78 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _identifierController = TextEditingController(text: 'anu@safeher.app');
-  final _passwordController = TextEditingController(text: 'Password123!');
+  final _identifierController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _identifierFocusNode = FocusNode();
   bool _obscurePassword = true;
   bool _isLoading = false;
+  bool _isOtpLoading = false;
+  String? _otpPhoneError;
 
   @override
   void dispose() {
     _identifierController.dispose();
     _passwordController.dispose();
+    _identifierFocusNode.dispose();
     super.dispose();
   }
 
+  Future<void> _handleOtpSignIn() async {
+    if (_isOtpLoading || _isLoading) return;
+
+    final rawInput = _identifierController.text;
+    final validationError = PhoneValidator.validate(rawInput);
+
+    if (validationError != null) {
+      setState(() {
+        _otpPhoneError = validationError;
+      });
+      _identifierFocusNode.requestFocus();
+      return;
+    }
+
+    setState(() {
+      _otpPhoneError = null;
+      _isOtpLoading = true;
+    });
+
+    final normalizedPhone = PhoneValidator.normalize(rawInput);
+    final authProvider = context.read<AuthProvider>();
+
+    final result = await authProvider.sendOtp(normalizedPhone);
+
+    if (!mounted) return;
+    setState(() => _isOtpLoading = false);
+
+    if (result['success'] == true) {
+      final isMock = result['isMock'] == true;
+      if (isMock) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] as String? ?? 'Simulation Mode: SMS delivery is simulated.'),
+            backgroundColor: AppTheme.warningAmber,
+          ),
+        );
+      }
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => OtpVerificationScreen(
+            phoneOrEmail: normalizedPhone,
+          ),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result['message'] as String? ?? 'Failed to send verification code.'),
+          backgroundColor: AppTheme.emergencyRed,
+        ),
+      );
+    }
+  }
+
   Future<void> _handleLogin() async {
+    if (_isLoading) return;
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
@@ -43,9 +105,60 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = false);
 
     if (success) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const DashboardScreen()),
-      );
+      final hasCompletedPerms = await PermissionOnboardingScreen.hasCompleted();
+      final hasCompletedGuide = await UserGuideScreen.hasCompletedGuide();
+      if (!mounted) return;
+
+      if (!hasCompletedPerms) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const PermissionOnboardingScreen()),
+        );
+      } else if (!hasCompletedGuide) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const UserGuideScreen()),
+        );
+      } else {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const DashboardScreen()),
+        );
+      }
+    } else {
+      final errorMsg = authProvider.errorMessage ?? 'Login failed. Please check your credentials.';
+      final isUnverified = errorMsg.contains('not verified') || errorMsg.contains('OTP verification');
+
+      if (isUnverified) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMsg),
+            backgroundColor: AppTheme.warningAmber,
+            action: SnackBarAction(
+              label: 'Verify Now',
+              textColor: Colors.white,
+              onPressed: () {
+                final rawIdentifier = _identifierController.text.trim();
+                final phoneOrEmail = rawIdentifier.contains('@')
+                    ? rawIdentifier
+                    : PhoneValidator.normalize(rawIdentifier);
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => OtpVerificationScreen(
+                      phoneOrEmail: phoneOrEmail,
+                    ),
+                  ),
+                );
+              },
+            ),
+            duration: const Duration(seconds: 6),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMsg),
+            backgroundColor: AppTheme.emergencyRed,
+          ),
+        );
+      }
     }
   }
 
@@ -96,8 +209,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: AppTheme.surfaceWhite,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -108,25 +223,49 @@ class _LoginScreenState extends State<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Center(
-                    child: Image.asset(
-                      'assets/images/svasheild_logo.png',
-                      width: 72,
-                      height: 72,
-                      fit: BoxFit.contain,
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(18),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.08),
+                            blurRadius: 16,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(14),
+                        child: Image.asset(
+                          'assets/images/svashield_logo.png',
+                          width: 64,
+                          height: 64,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 20),
-                  const Center(
+                  Center(
                     child: Text(
-                      'Welcome to Svasheild',
-                      style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                      'Welcome to SvaShield',
+                      style: TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? AppTheme.textPrimaryDark : AppTheme.textPrimary,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 6),
-                  const Center(
+                  Center(
                     child: Text(
                       'Sign in to access your personal safety dashboard',
-                      style: TextStyle(fontSize: 14, color: AppTheme.textSecondary),
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: isDark ? AppTheme.textSecondaryDark : AppTheme.textSecondary,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -142,7 +281,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           decoration: BoxDecoration(
                             color: AppTheme.emergencyLightRed,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: AppTheme.emergencyRed.withOpacity(0.3)),
+                            border: Border.all(color: AppTheme.emergencyRed.withValues(alpha: 0.3)),
                           ),
                           child: Row(
                             children: [
@@ -163,18 +302,30 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
 
                   // Identifier field
-                  const Text(
+                  Text(
                     'Email or Mobile Number',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? AppTheme.textPrimaryDark : AppTheme.textPrimary,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: _identifierController,
+                    focusNode: _identifierFocusNode,
                     keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
+                    style: TextStyle(color: isDark ? AppTheme.textPrimaryDark : AppTheme.textPrimary),
+                    decoration: InputDecoration(
                       hintText: 'name@example.com or phone',
-                      prefixIcon: Icon(Icons.person_outline, color: AppTheme.textSecondary),
+                      prefixIcon: Icon(Icons.person_outline, color: isDark ? AppTheme.textSecondaryDark : AppTheme.textSecondary),
+                      errorText: _otpPhoneError,
                     ),
+                    onChanged: (val) {
+                      if (_otpPhoneError != null) {
+                        setState(() => _otpPhoneError = null);
+                      }
+                    },
                     validator: (val) {
                       if (val == null || val.trim().isEmpty) {
                         return 'Please enter your registered email or phone.';
@@ -185,21 +336,26 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 20),
 
                   // Password field
-                  const Text(
+                  Text(
                     'Password or PIN',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? AppTheme.textPrimaryDark : AppTheme.textPrimary,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: _passwordController,
                     obscureText: _obscurePassword,
+                    style: TextStyle(color: isDark ? AppTheme.textPrimaryDark : AppTheme.textPrimary),
                     decoration: InputDecoration(
                       hintText: 'Enter your password or PIN',
-                      prefixIcon: const Icon(Icons.lock_outline, color: AppTheme.textSecondary),
+                      prefixIcon: Icon(Icons.lock_outline, color: isDark ? AppTheme.textSecondaryDark : AppTheme.textSecondary),
                       suffixIcon: IconButton(
                         icon: Icon(
                           _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                          color: AppTheme.textSecondary,
+                          color: isDark ? AppTheme.textSecondaryDark : AppTheme.textSecondary,
                         ),
                         onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                       ),
@@ -235,17 +391,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     text: 'Sign In with OTP Verification',
                     type: SafeButtonType.secondary,
                     icon: Icons.sms_outlined,
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => OtpVerificationScreen(
-                            phoneOrEmail: _identifierController.text.trim().isNotEmpty
-                                ? _identifierController.text.trim()
-                                : '+91 98765 43210',
-                          ),
-                        ),
-                      );
-                    },
+                    isLoading: _isOtpLoading,
+                    onPressed: (_isOtpLoading || _isLoading) ? null : _handleOtpSignIn,
                   ),
                   const SizedBox(height: 28),
 
@@ -253,9 +400,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text(
+                      Text(
                         "Don't have an account?",
-                        style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+                        style: TextStyle(color: isDark ? AppTheme.textSecondaryDark : AppTheme.textSecondary, fontSize: 14),
                       ),
                       TextButton(
                         onPressed: () {

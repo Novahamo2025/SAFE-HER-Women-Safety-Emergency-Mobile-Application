@@ -20,7 +20,13 @@ class _SafeWalkScreenState extends State<SafeWalkScreen> {
   final TextEditingController _destController = TextEditingController();
   int _estimatedMinutes = 20;
 
-  final List<String> _presets = ['Home', 'Hostel', 'Metro Station', 'Office / Work', 'Bus Terminal'];
+  final List<String> _presets = [
+    'Home',
+    'Hostel',
+    'Metro Station',
+    'Office / Work',
+    'Bus Terminal'
+  ];
 
   @override
   void dispose() {
@@ -41,13 +47,14 @@ class _SafeWalkScreenState extends State<SafeWalkScreen> {
     }
 
     context.read<JourneyProvider>().startJourney(
-      destination: dest,
-      durationMinutes: _estimatedMinutes,
-    );
+          destination: dest,
+          durationMinutes: _estimatedMinutes,
+        );
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Safe Walk active towards $dest for $_estimatedMinutes mins'),
+        content:
+            Text('Safe Walk active towards $dest for $_estimatedMinutes mins'),
         backgroundColor: AppTheme.safeGreen,
       ),
     );
@@ -65,7 +72,7 @@ class _SafeWalkScreenState extends State<SafeWalkScreen> {
           children: [
             const Text(
               'Add a landmark or transit note to your monitored journey:',
-              style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+              style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary),
             ),
             const SizedBox(height: 12),
             TextField(
@@ -77,11 +84,14 @@ class _SafeWalkScreenState extends State<SafeWalkScreen> {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () {
               if (checkpointCtrl.text.isNotEmpty) {
-                context.read<JourneyProvider>().addCheckpoint(checkpointCtrl.text.trim());
+                context
+                    .read<JourneyProvider>()
+                    .addCheckpoint(checkpointCtrl.text.trim());
               }
               Navigator.pop(ctx);
             },
@@ -108,22 +118,29 @@ class _SafeWalkScreenState extends State<SafeWalkScreen> {
           children: [
             Container(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: AppTheme.warningLightAmber,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.alarm_on, color: AppTheme.warningAmber, size: 36),
+              child: const Icon(Icons.alarm_on,
+                  color: AppTheme.warningAmber, size: 36),
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Have You Reached Safely?',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+              style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textPrimaryFor(context)),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Your estimated arrival time has reached. Please confirm your safety to prevent escalating alerts to your trusted contacts.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13.5, color: AppTheme.textSecondary, height: 1.4),
+              style: TextStyle(
+                  fontSize: 13.5,
+                  color: AppTheme.textSecondaryFor(context),
+                  height: 1.4),
             ),
             const SizedBox(height: 24),
             SafeButton(
@@ -135,7 +152,8 @@ class _SafeWalkScreenState extends State<SafeWalkScreen> {
                 Navigator.pop(ctx);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Safe Walk completed. Glad you reached safely!'),
+                    content:
+                        Text('Safe Walk completed. Glad you reached safely!'),
                     backgroundColor: AppTheme.safeGreen,
                   ),
                 );
@@ -150,12 +168,15 @@ class _SafeWalkScreenState extends State<SafeWalkScreen> {
                 Navigator.pop(ctx);
                 final contacts = context.read<ContactProvider>().contacts;
                 final emergency = context.read<EmergencyProvider>();
-                await emergency.triggerEmergency(contacts: contacts, userName: 'SafeHer User');
+                await emergency.triggerEmergency(
+                    contacts: contacts, userName: 'SafeHer User');
                 if (mounted) {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => SosActiveScreen(latitude: emergency.latitude, longitude: emergency.longitude),
+                      builder: (_) => SosActiveScreen(
+                          latitude: emergency.latitude,
+                          longitude: emergency.longitude),
                     ),
                   );
                 }
@@ -180,8 +201,10 @@ class _SafeWalkScreenState extends State<SafeWalkScreen> {
       });
     }
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: AppTheme.backgroundLight,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Safe Walk / Journey'),
       ),
@@ -193,8 +216,12 @@ class _SafeWalkScreenState extends State<SafeWalkScreen> {
             if (activeJourney != null && activeJourney.isActive) ...[
               // Active Journey Card
               SafeCard(
-                borderColor: AppTheme.brandPrimary.withOpacity(0.3),
-                backgroundColor: AppTheme.brandPrimaryLight.withOpacity(0.3),
+                borderColor: isDark
+                    ? const Color(0xFF334155)
+                    : AppTheme.brandPrimary.withValues(alpha: 0.3),
+                backgroundColor: isDark
+                    ? const Color(0xFF1E293B)
+                    : AppTheme.brandPrimaryLight.withValues(alpha: 0.3),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -208,7 +235,12 @@ class _SafeWalkScreenState extends State<SafeWalkScreen> {
                         ),
                         Text(
                           'ETA ${activeJourney.expectedArrival.hour.toString().padLeft(2, '0')}:${activeJourney.expectedArrival.minute.toString().padLeft(2, '0')}',
-                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppTheme.textPrimary),
+                          style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                              color: isDark
+                                  ? AppTheme.textPrimaryDark
+                                  : AppTheme.textPrimary),
                         ),
                       ],
                     ),
@@ -218,20 +250,33 @@ class _SafeWalkScreenState extends State<SafeWalkScreen> {
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: AppTheme.brandPrimary,
+                            color: isDark
+                                ? const Color(0xFF4F46E5)
+                                : AppTheme.brandPrimary,
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Icon(Icons.directions_walk, color: Colors.white, size: 24),
+                          child: const Icon(Icons.directions_walk,
+                              color: Colors.white, size: 24),
                         ),
                         const SizedBox(width: 14),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('Heading Towards', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                              Text('Heading Towards',
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      color: isDark
+                                          ? AppTheme.textSecondaryDark
+                                          : AppTheme.textSecondary)),
                               Text(
                                 activeJourney.destination,
-                                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                                style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: isDark
+                                        ? AppTheme.textPrimaryDark
+                                        : AppTheme.textPrimary),
                               ),
                             ],
                           ),
@@ -246,8 +291,12 @@ class _SafeWalkScreenState extends State<SafeWalkScreen> {
                       child: LinearProgressIndicator(
                         value: activeJourney.progressPercentage,
                         minHeight: 8,
-                        backgroundColor: Colors.grey.shade200,
-                        valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.brandPrimary),
+                        backgroundColor: isDark
+                            ? const Color(0xFF334155)
+                            : Colors.grey.shade200,
+                        valueColor: AlwaysStoppedAnimation<Color>(isDark
+                            ? const Color(0xFF818CF8)
+                            : AppTheme.brandPrimary),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -256,47 +305,74 @@ class _SafeWalkScreenState extends State<SafeWalkScreen> {
                       children: [
                         Text(
                           'Started at ${activeJourney.startedAt.hour.toString().padLeft(2, '0')}:${activeJourney.startedAt.minute.toString().padLeft(2, '0')}',
-                          style: const TextStyle(fontSize: 12, color: AppTheme.textTertiary),
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: isDark
+                                  ? AppTheme.textTertiaryDark
+                                  : AppTheme.textTertiary),
                         ),
                         Text(
                           '${activeJourney.remainingDuration.inMinutes} mins remaining',
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.brandPrimary),
+                          style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: isDark
+                                  ? const Color(0xFF818CF8)
+                                  : AppTheme.brandPrimary),
                         ),
                       ],
                     ),
                     const SizedBox(height: 16),
 
                     // Checkpoints list
-                    const Text('Journey Timeline & Checkpoints:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                    Text('Journey Timeline & Checkpoints:',
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: isDark
+                                ? AppTheme.textPrimaryDark
+                                : AppTheme.textPrimary)),
                     const SizedBox(height: 6),
                     ...activeJourney.checkpoints.map((cp) => Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 3),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.check_circle, size: 14, color: AppTheme.safeGreen),
-                          const SizedBox(width: 8),
-                          Expanded(child: Text(cp, style: const TextStyle(fontSize: 12.5, color: AppTheme.textSecondary))),
-                        ],
-                      ),
-                    )),
+                          padding: const EdgeInsets.symmetric(vertical: 3),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.check_circle,
+                                  size: 14, color: AppTheme.safeGreen),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                  child: Text(cp,
+                                      style: TextStyle(
+                                          fontSize: 12.5,
+                                          color: isDark
+                                              ? AppTheme.textSecondaryDark
+                                              : AppTheme.textSecondary))),
+                            ],
+                          ),
+                        )),
                     const SizedBox(height: 16),
 
                     Row(
                       children: [
                         Expanded(
                           child: OutlinedButton.icon(
-                            icon: const Icon(Icons.add_location_alt_outlined, size: 18),
-                            label: const Text('Add Checkpoint', style: TextStyle(fontSize: 13)),
+                            icon: const Icon(Icons.add_location_alt_outlined,
+                                size: 18),
+                            label: const Text('Add Checkpoint',
+                                style: TextStyle(fontSize: 13)),
                             onPressed: _showAddCheckpointDialog,
                           ),
                         ),
                         const SizedBox(width: 10),
                         Expanded(
                           child: ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.safeGreen),
+                            style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.safeGreen),
                             icon: const Icon(Icons.check, size: 18),
-                            label: const Text('I Have Arrived', style: TextStyle(fontSize: 13)),
-                            onPressed: () => journeyProvider.completeJourneySafely(),
+                            label: const Text('I Have Arrived',
+                                style: TextStyle(fontSize: 13)),
+                            onPressed: () =>
+                                journeyProvider.completeJourneySafely(),
                           ),
                         ),
                       ],
@@ -305,7 +381,9 @@ class _SafeWalkScreenState extends State<SafeWalkScreen> {
                     Center(
                       child: TextButton(
                         onPressed: () => journeyProvider.cancelJourney(),
-                        child: const Text('Cancel Safe Walk', style: TextStyle(color: AppTheme.emergencyRed, fontSize: 13)),
+                        child: const Text('Cancel Safe Walk',
+                            style: TextStyle(
+                                color: AppTheme.emergencyRed, fontSize: 13)),
                       ),
                     ),
                   ],
@@ -318,25 +396,44 @@ class _SafeWalkScreenState extends State<SafeWalkScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Start a Monitored Journey',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                      style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: isDark
+                              ? AppTheme.textPrimaryDark
+                              : AppTheme.textPrimary),
                     ),
                     const SizedBox(height: 6),
-                    const Text(
-                      'Svasheild tracks your expected arrival and alerts your trusted contacts if you do not confirm reaching safely within the grace period.',
-                      style: TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.4),
+                    Text(
+                      'SvaShield tracks your expected arrival and alerts your trusted contacts if you do not confirm reaching safely within the grace period.',
+                      style: TextStyle(
+                          fontSize: 13,
+                          color: isDark
+                              ? AppTheme.textSecondaryDark
+                              : AppTheme.textSecondary,
+                          height: 1.4),
                     ),
                     const SizedBox(height: 20),
 
                     // Destination Input
-                    const Text('Destination', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600)),
+                    Text('Destination',
+                        style: TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w600,
+                            color: isDark
+                                ? AppTheme.textPrimaryDark
+                                : AppTheme.textPrimary)),
                     const SizedBox(height: 6),
                     TextField(
                       controller: _destController,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         hintText: 'e.g. Home, Sector 18 Metro, Hostel',
-                        prefixIcon: Icon(Icons.location_on_outlined, color: AppTheme.brandPrimary),
+                        prefixIcon: Icon(Icons.location_on_outlined,
+                            color: isDark
+                                ? const Color(0xFF818CF8)
+                                : AppTheme.brandPrimary),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -347,9 +444,17 @@ class _SafeWalkScreenState extends State<SafeWalkScreen> {
                       runSpacing: 6,
                       children: _presets.map((preset) {
                         return ActionChip(
-                          label: Text(preset, style: const TextStyle(fontSize: 12)),
-                          backgroundColor: AppTheme.surfaceMuted,
-                          onPressed: () => setState(() => _destController.text = preset),
+                          label: Text(preset,
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: isDark
+                                      ? AppTheme.textPrimaryDark
+                                      : AppTheme.textPrimary)),
+                          backgroundColor: isDark
+                              ? const Color(0xFF273449)
+                              : AppTheme.surfaceMuted,
+                          onPressed: () =>
+                              setState(() => _destController.text = preset),
                         );
                       }).toList(),
                     ),
@@ -359,10 +464,21 @@ class _SafeWalkScreenState extends State<SafeWalkScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Estimated Duration', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600)),
+                        Text('Estimated Duration',
+                            style: TextStyle(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w600,
+                                color: isDark
+                                    ? AppTheme.textPrimaryDark
+                                    : AppTheme.textPrimary)),
                         Text(
                           '$_estimatedMinutes minutes',
-                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.brandPrimary),
+                          style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: isDark
+                                  ? const Color(0xFF818CF8)
+                                  : AppTheme.brandPrimary),
                         ),
                       ],
                     ),
@@ -371,8 +487,11 @@ class _SafeWalkScreenState extends State<SafeWalkScreen> {
                       min: 5,
                       max: 120,
                       divisions: 23,
-                      activeColor: AppTheme.brandPrimary,
-                      onChanged: (val) => setState(() => _estimatedMinutes = val.toInt()),
+                      activeColor: isDark
+                          ? const Color(0xFF818CF8)
+                          : AppTheme.brandPrimary,
+                      onChanged: (val) =>
+                          setState(() => _estimatedMinutes = val.toInt()),
                     ),
                     const SizedBox(height: 8),
 
@@ -380,18 +499,31 @@ class _SafeWalkScreenState extends State<SafeWalkScreen> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: AppTheme.infoLightBlue,
+                        color: isDark
+                            ? const Color(0xFF1E293B)
+                            : AppTheme.infoLightBlue,
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: AppTheme.infoBlue.withOpacity(0.2)),
+                        border: Border.all(
+                            color: isDark
+                                ? const Color(0xFF334155)
+                                : AppTheme.infoBlue.withValues(alpha: 0.2)),
                       ),
-                      child: const Row(
+                      child: Row(
                         children: [
-                          Icon(Icons.timer_outlined, color: AppTheme.infoBlue, size: 18),
-                          SizedBox(width: 10),
+                          Icon(Icons.timer_outlined,
+                              color: isDark
+                                  ? const Color(0xFF60A5FA)
+                                  : AppTheme.infoBlue,
+                              size: 18),
+                          const SizedBox(width: 10),
                           Expanded(
                             child: Text(
                               'Grace period: You will receive a safety prompt at ETA + 5 minutes before contacts are notified.',
-                              style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: isDark
+                                      ? AppTheme.textSecondaryDark
+                                      : AppTheme.textSecondary),
                             ),
                           ),
                         ],
@@ -412,9 +544,14 @@ class _SafeWalkScreenState extends State<SafeWalkScreen> {
 
             // Past Journeys Summary
             if (journeyProvider.pastJourneys.isNotEmpty) ...[
-              const Text(
+              Text(
                 'Recent Journeys',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: isDark
+                        ? AppTheme.textPrimaryDark
+                        : AppTheme.textPrimary),
               ),
               const SizedBox(height: 10),
               ...journeyProvider.pastJourneys.take(3).map((pj) {
@@ -427,12 +564,22 @@ class _SafeWalkScreenState extends State<SafeWalkScreen> {
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: pj.isCompleted ? AppTheme.safeGreenLight : AppTheme.surfaceMuted,
+                            color: pj.isCompleted
+                                ? (isDark
+                                    ? const Color(0xFF064E3B)
+                                    : AppTheme.safeGreenLight)
+                                : (isDark
+                                    ? const Color(0xFF334155)
+                                    : AppTheme.surfaceMuted),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
                             pj.isCompleted ? Icons.check : Icons.close,
-                            color: pj.isCompleted ? AppTheme.safeGreen : AppTheme.textSecondary,
+                            color: pj.isCompleted
+                                ? AppTheme.safeGreen
+                                : (isDark
+                                    ? AppTheme.textSecondaryDark
+                                    : AppTheme.textSecondary),
                             size: 18,
                           ),
                         ),
@@ -441,17 +588,29 @@ class _SafeWalkScreenState extends State<SafeWalkScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(pj.destination, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                              Text(pj.destination,
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                      color: isDark
+                                          ? AppTheme.textPrimaryDark
+                                          : AppTheme.textPrimary)),
                               Text(
                                 '${pj.startedAt.day}/${pj.startedAt.month} • ${pj.durationMinutes} mins',
-                                style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: isDark
+                                        ? AppTheme.textSecondaryDark
+                                        : AppTheme.textSecondary),
                               ),
                             ],
                           ),
                         ),
                         StatusBadge(
                           label: pj.status,
-                          type: pj.isCompleted ? StatusBadgeType.success : StatusBadgeType.neutral,
+                          type: pj.isCompleted
+                              ? StatusBadgeType.success
+                              : StatusBadgeType.neutral,
                         ),
                       ],
                     ),

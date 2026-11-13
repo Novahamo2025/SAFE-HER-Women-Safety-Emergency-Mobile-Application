@@ -67,3 +67,10 @@ firebase-service-account.json
 *.iws
 .DS_Store
 Thumbs.db
+
+# Crash dumps & local scratch
+hs_err_pid*.log
+replay_pid*.log
+*.log
+scratch/
+

@@ -49,6 +49,13 @@ public class User {
     @Builder.Default
     private String accountStatus = "ACTIVE";
 
+    @Column(name = "is_legacy_account", nullable = false)
+    @Builder.Default
+    private Boolean isLegacyAccount = false;
+
+    @Column(name = "phone_verified_at")
+    private Instant phoneVerifiedAt;
+
     @Column(name = "last_login_at")
     private Instant lastLoginAt;
 

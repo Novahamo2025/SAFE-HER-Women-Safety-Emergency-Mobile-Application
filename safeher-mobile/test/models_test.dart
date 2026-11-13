@@ -91,4 +91,26 @@ void main() {
       expect(json['isEncryptedLocally'], true);
     });
   });
+
+  group('EmergencyEventModel Tests', () {
+    test('EmergencyEventModel serialization and status check', () {
+      final now = DateTime.now();
+      final event = EmergencyEventModel(
+        id: 101,
+        eventType: 'SOS',
+        status: 'ACTIVE',
+        startedAt: now,
+      );
+
+      expect(event.id, 101);
+      expect(event.eventType, 'SOS');
+      expect(event.isActive, true);
+      expect(event.isResolved, false);
+
+      final json = event.toJson();
+      expect(json['id'], 101);
+      expect(json['eventType'], 'SOS');
+      expect(json['status'], 'ACTIVE');
+    });
+  });
 }

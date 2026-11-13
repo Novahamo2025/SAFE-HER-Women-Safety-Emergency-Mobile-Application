@@ -27,6 +27,23 @@ app:
     enabled: false
   contacts:
     max-per-user: 10
+  outbox:
+    enabled: false
+    batch-size: 10
+    poll-interval-ms: 60000
+    recovery-interval-ms: 60000
+    lease-duration-seconds: 120
+  crypto:
+    otp-pepper-key: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+    otp-pepper-version: v1
+    sms-encryption-key-v1: fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210
+    sms-encryption-key-version: v1
+    validate-on-startup: true
+  webhook:
+    msg91:
+      secret-header-name: X-SvaShield-Webhook-Secret
+      secret-header-value: test-webhook-secret-token-abcdef123456
+      url-token: test-url-token-xyz789
 
 logging:
   level:

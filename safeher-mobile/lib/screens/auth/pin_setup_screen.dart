@@ -4,6 +4,8 @@ import '../../core/auth/auth_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../widgets/safe_button.dart';
 import '../dashboard/dashboard_screen.dart';
+import '../onboarding/permission_onboarding_screen.dart';
+import '../onboarding/user_guide_screen.dart';
 
 class PinSetupScreen extends StatefulWidget {
   final String? phoneOrEmail;
@@ -62,14 +64,28 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Security PIN created successfully! Welcome to Svasheild.'),
+        content: Text('Security PIN created successfully! Welcome to SvaShield.'),
         backgroundColor: AppTheme.safeGreen,
       ),
     );
 
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const DashboardScreen()),
-    );
+    final hasCompletedPerms = await PermissionOnboardingScreen.hasCompleted();
+    final hasCompletedGuide = await UserGuideScreen.hasCompletedGuide();
+    if (!mounted) return;
+
+    if (!hasCompletedPerms) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const PermissionOnboardingScreen()),
+      );
+    } else if (!hasCompletedGuide) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const UserGuideScreen()),
+      );
+    } else {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const DashboardScreen()),
+      );
+    }
   }
 
   @override
@@ -171,7 +187,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
                 decoration: BoxDecoration(
                   color: AppTheme.infoLightBlue,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppTheme.infoBlue.withOpacity(0.2)),
+                  border: Border.all(color: AppTheme.infoBlue.withValues(alpha: 0.2)),
                 ),
                 child: const Row(
                   crossAxisAlignment: CrossAxisAlignment.start,

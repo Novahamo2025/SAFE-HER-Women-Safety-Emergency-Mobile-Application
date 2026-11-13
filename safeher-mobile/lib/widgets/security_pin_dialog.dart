@@ -16,14 +16,14 @@ class SecurityPinDialog extends StatefulWidget {
     this.isDestructive = false,
   });
 
-  static Future<bool?> show(
+  static Future<String?> show(
     BuildContext context, {
     String title = 'Confirm Security PIN',
     String message = 'Enter your 4-digit security PIN to confirm you are safe:',
     String actionButtonText = 'I am Safe (End SOS)',
     bool isDestructive = false,
   }) {
-    return showDialog<bool>(
+    return showDialog<String>(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => SecurityPinDialog(
@@ -90,7 +90,7 @@ class _SecurityPinDialogState extends State<SecurityPinDialog> {
     });
 
     if (mounted) {
-      Navigator.of(context).pop(true);
+      Navigator.of(context).pop(inputPin);
     }
   }
 
@@ -124,7 +124,7 @@ class _SecurityPinDialogState extends State<SecurityPinDialog> {
           children: [
             Text(
               widget.message,
-              style: const TextStyle(fontSize: 13.5, color: AppTheme.textSecondary, height: 1.4),
+              style: TextStyle(fontSize: 13.5, color: AppTheme.textSecondaryFor(context), height: 1.4),
             ),
             const SizedBox(height: 16),
             TextField(
@@ -146,10 +146,10 @@ class _SecurityPinDialogState extends State<SecurityPinDialog> {
               onSubmitted: (_) => _validateAndConfirm(),
             ),
             const SizedBox(height: 8),
-            const Center(
+            Center(
               child: Text(
                 'Protects against accidental or coerced cancellation',
-                style: TextStyle(fontSize: 11.5, color: AppTheme.textTertiary),
+                style: TextStyle(fontSize: 11.5, color: AppTheme.textTertiaryFor(context)),
               ),
             ),
           ],
@@ -157,7 +157,7 @@ class _SecurityPinDialogState extends State<SecurityPinDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.of(context).pop(false),
+          onPressed: () => Navigator.of(context).pop(null),
           child: const Text('Cancel / Keep Active'),
         ),
         ElevatedButton(

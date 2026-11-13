@@ -60,25 +60,34 @@ class _SosActiveScreenState extends State<SosActiveScreen> with SingleTickerProv
   }
 
   Future<void> _handleEndEmergency() async {
-    final confirmed = await SecurityPinDialog.show(
+    final enteredPin = await SecurityPinDialog.show(
       context,
       title: 'End Emergency SOS',
       message: 'Enter your 4-digit security PIN to confirm you are safe and stop live location sharing:',
       actionButtonText: 'I am Safe (End SOS)',
     );
 
-    if (confirmed == true && mounted) {
+    if (enteredPin != null && enteredPin.isNotEmpty && mounted) {
       final emergencyProvider = context.read<EmergencyProvider>();
-      await emergencyProvider.endEmergency();
+      final success = await emergencyProvider.endEmergency(pin: enteredPin);
 
       if (mounted) {
-        Navigator.of(context).pop(); // Return to dashboard
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Emergency resolved safely. Live location sharing stopped.'),
-            backgroundColor: AppTheme.safeGreen,
-          ),
-        );
+        if (success) {
+          Navigator.of(context).pop(); // Return to dashboard
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Emergency resolved safely. Live location sharing stopped.'),
+              backgroundColor: AppTheme.safeGreen,
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(emergencyProvider.errorMessage ?? 'Cancellation failed. Incorrect PIN or network error.'),
+              backgroundColor: AppTheme.emergencyRed,
+            ),
+          );
+        }
       }
     }
   }
@@ -178,7 +187,7 @@ class _SosActiveScreenState extends State<SosActiveScreen> with SingleTickerProv
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
@@ -203,7 +212,7 @@ class _SosActiveScreenState extends State<SosActiveScreen> with SingleTickerProv
                 return Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                  color: AppTheme.emergencyRed.withOpacity(_blinkAnimation.value),
+                  color: AppTheme.emergencyRed.withValues(alpha: _blinkAnimation.value),
                   child: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -227,8 +236,8 @@ class _SosActiveScreenState extends State<SosActiveScreen> with SingleTickerProv
                   children: [
                     // Location & Radar Card
                     SafeCard(
-                      borderColor: AppTheme.emergencyRed.withOpacity(0.3),
-                      backgroundColor: AppTheme.emergencyLightRed.withOpacity(0.4),
+                      borderColor: AppTheme.emergencyRed.withValues(alpha: 0.3),
+                      backgroundColor: AppTheme.emergencyLightRed.withValues(alpha: 0.4),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -345,7 +354,7 @@ class _SosActiveScreenState extends State<SosActiveScreen> with SingleTickerProv
                               children: [
                                 Container(
                                   padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
+                                  decoration: const BoxDecoration(
                                     color: AppTheme.safeGreenLight,
                                     shape: BoxShape.circle,
                                   ),

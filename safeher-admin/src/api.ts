@@ -111,7 +111,9 @@ export interface DashboardData {
   users: AdminUser[];
 }
 
-const api = axios.create({ baseURL: '/api' });
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
+});
 
 api.interceptors.request.use((config) => {
   const token = sessionStorage.getItem('safeher-admin-token');

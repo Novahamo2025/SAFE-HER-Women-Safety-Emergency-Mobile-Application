@@ -19,4 +19,13 @@ public class EmergencyStartRequest {
     private BigDecimal accuracyMeters;
 
     private String clientEventUuid;
+
+    private String idempotencyKey;
+
+    public String getEffectiveIdempotencyKey() {
+        if (idempotencyKey != null && !idempotencyKey.isBlank()) {
+            return idempotencyKey;
+        }
+        return clientEventUuid;
+    }
 }
